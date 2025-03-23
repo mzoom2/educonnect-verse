@@ -102,11 +102,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        toast({
-          title: "Registration failed",
-          description: error.message,
-          variant: "destructive"
-        });
+        // Handle specific Supabase error codes
+        if (error.message.includes("email rate limit exceeded")) {
+          toast({
+            title: "Too many attempts",
+            description: "Please wait a few minutes before trying to sign up again.",
+            variant: "destructive"
+          });
+        } else if (error.message.includes("invalid")) {
+          toast({
+            title: "Invalid email",
+            description: "Please provide a valid email address.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Registration failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
         return { error, data: null };
       }
       
