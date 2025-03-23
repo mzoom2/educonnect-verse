@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Types for our local authentication system
@@ -10,6 +11,14 @@ export interface User {
     avatar_url?: string;
     role?: string;
     last_login?: string;
+    balance?: number;
+    teacherApplication?: {
+      qualification: string;
+      experience: string;
+      specialization: string;
+      status?: 'pending' | 'approved' | 'rejected';
+      submittedAt?: string;
+    };
   };
 }
 

@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Wallet, GraduationCap } from 'lucide-react';
+import { Wallet, GraduationCap, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Link } from 'react-router-dom';
 
 // Form schema for becoming a teacher
 const teacherFormSchema = z.object({
@@ -38,7 +39,7 @@ const Profile = () => {
   const userName = user?.user_metadata?.username || 
                   (user?.email ? user.email.split('@')[0] : 'User');
   
-  // User's balance (hardcoded for now, would come from a database in a real app)
+  // User's balance (default to 0 if not set)
   const userBalance = user?.user_metadata?.balance || 0;
   
   // Check if user is already a teacher
@@ -67,11 +68,14 @@ const Profile = () => {
     setIsSubmitting(true);
     try {
       // In a real app, this would send the application to the backend
-      // For now, we'll just update the user's role directly
+      // For now, we'll just update the user's metadata
       if (updateUserMetadata && user) {
         await updateUserMetadata(user.id, { 
-          role: 'teacher',
-          teacherApplication: values
+          teacherApplication: {
+            ...values,
+            status: 'pending',
+            submittedAt: new Date().toISOString()
+          }
         });
         
         toast({
@@ -144,9 +148,17 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               {isTeacher ? (
-                <div className="bg-green-50 text-green-800 rounded-md p-4">
-                  <p className="font-medium">You are already a teacher!</p>
-                  <p className="mt-2">You can create courses and earn by sharing your knowledge.</p>
+                <div className="space-y-6">
+                  <div className="bg-green-50 text-green-800 rounded-md p-4">
+                    <p className="font-medium">You are already a teacher!</p>
+                    <p className="mt-2">You can create courses and earn by sharing your knowledge.</p>
+                  </div>
+                  <Link to="/create-course">
+                    <Button className="mt-4 bg-edu-blue w-full sm:w-auto">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Create a New Course
+                    </Button>
+                  </Link>
                 </div>
               ) : showTeacherForm ? (
                 <Form {...form}>
