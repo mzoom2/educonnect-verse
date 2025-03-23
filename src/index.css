@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -142,12 +141,13 @@
     @apply relative overflow-hidden glass-card p-6 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02] transform;
   }
   
+  /* Fixed: Removed 'group' from @apply and made it a separate class */
   .course-card {
-    @apply glass-card p-4 transition-all duration-300 ease-in-out hover:shadow-lg group;
+    @apply glass-card p-4 transition-all duration-300 ease-in-out hover:shadow-lg;
   }
   
   .course-card-image {
-    @apply rounded-lg object-cover aspect-video w-full mb-4 transition-transform duration-500 ease-in-out group-hover:scale-[1.03];
+    @apply rounded-lg object-cover aspect-video w-full mb-4 transition-transform duration-500 ease-in-out;
   }
   
   .section-padding {

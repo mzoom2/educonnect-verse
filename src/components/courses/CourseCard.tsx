@@ -22,12 +22,12 @@ const CourseCard = ({
   category 
 }: CourseCardProps) => {
   return (
-    <div className="course-card">
+    <div className="course-card group">
       <div className="relative">
         <img 
           src={image} 
           alt={title} 
-          className="course-card-image"
+          className="course-card-image group-hover:scale-[1.03]"
           loading="lazy" 
         />
         <div className="absolute top-2 left-2">
