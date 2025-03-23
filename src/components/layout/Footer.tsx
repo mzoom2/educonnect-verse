@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
 
@@ -10,9 +9,8 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div>
-            <a href="/" className="flex items-center gap-2 font-medium text-xl text-foreground mb-4" aria-label="Skillversity">
-              <span className="text-edu-blue">Skill</span>
-              <span>versity</span>
+            <a href="/" className="flex items-center font-medium text-xl text-foreground mb-4" aria-label="Skillversity">
+              <span className="text-edu-blue">Skillversity</span>
             </a>
             <p className="text-muted-foreground mb-6">
               An advanced interactive educational platform that combines intelligent learning management with social networking features.

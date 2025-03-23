@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,11 +56,10 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <a 
           href="/" 
-          className="flex items-center gap-2 font-medium text-xl text-foreground"
+          className="flex items-center font-medium text-xl text-foreground"
           aria-label="Skillversity"
         >
-          <span className="text-edu-blue">Skill</span>
-          <span>versity</span>
+          <span className="text-edu-blue">Skillversity</span>
         </a>
         
         {/* Desktop Navigation */}
