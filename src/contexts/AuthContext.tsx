@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -87,18 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .limit(1);
       
       if (tableCheckError) {
-        console.log('Creating profiles table...');
-        // Create the profiles table if it doesn't exist
-        const { error: createTableError } = await supabase.rpc('create_profiles_table');
-        if (createTableError && !createTableError.message.includes('already exists')) {
-          console.error('Error creating profiles table:', createTableError);
-          toast({
-            title: "Setup error",
-            description: "There was an issue setting up your account. Please try again later.",
-            variant: "destructive"
-          });
-          return { error: new Error(createTableError.message), data: null };
-        }
+        console.log('Profiles table may not exist yet. Will be created when registering.');
       }
 
       // Register the user

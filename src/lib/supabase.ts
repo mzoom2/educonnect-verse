@@ -16,51 +16,44 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     if (error) {
       console.log('Setting up profiles table...');
-      // Create a stored procedure to create the profiles table
-      await supabase.rpc('create_profiles_table').catch(async (err) => {
-        if (err.message.includes('function "create_profiles_table" does not exist')) {
-          // Create the function if it doesn't exist
-          const { error: sqlError } = await supabase.sql(`
-            CREATE OR REPLACE FUNCTION create_profiles_table()
-            RETURNS void AS $$
-            BEGIN
-              CREATE TABLE IF NOT EXISTS public.profiles (
-                id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-                username TEXT UNIQUE,
-                email TEXT UNIQUE,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-              );
-              
-              -- Set up Row Level Security
-              ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-              
-              -- Create policies
-              CREATE POLICY "Public profiles are viewable by everyone."
-                ON public.profiles FOR SELECT
-                USING (true);
-                
-              CREATE POLICY "Users can insert their own profile."
-                ON public.profiles FOR INSERT
-                WITH CHECK (auth.uid() = id);
-                
-              CREATE POLICY "Users can update their own profile."
-                ON public.profiles FOR UPDATE
-                USING (auth.uid() = id);
-            END;
-            $$ LANGUAGE plpgsql;
-          `);
+      
+      // Create the profiles table directly using a SQL query
+      try {
+        // Use the query method instead of direct SQL
+        const { error: createTableError } = await supabase.query(`
+          CREATE TABLE IF NOT EXISTS public.profiles (
+            id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+            username TEXT UNIQUE,
+            email TEXT UNIQUE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+          );
           
-          if (sqlError) {
-            console.error('Failed to create function:', sqlError);
-          } else {
-            // Try to create the table again
-            await supabase.rpc('create_profiles_table').catch((finalErr) => {
-              console.error('Final error creating profiles table:', finalErr);
-            });
-          }
+          -- Set up Row Level Security
+          ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+          
+          -- Create policies
+          CREATE POLICY "Public profiles are viewable by everyone."
+            ON public.profiles FOR SELECT
+            USING (true);
+            
+          CREATE POLICY "Users can insert their own profile."
+            ON public.profiles FOR INSERT
+            WITH CHECK (auth.uid() = id);
+            
+          CREATE POLICY "Users can update their own profile."
+            ON public.profiles FOR UPDATE
+            USING (auth.uid() = id);
+        `);
+        
+        if (createTableError) {
+          console.error('Failed to create profiles table:', createTableError);
+        } else {
+          console.log('Profiles table created successfully');
         }
-      });
+      } catch (sqlErr) {
+        console.error('Error executing SQL query:', sqlErr);
+      }
     }
   } catch (err) {
     console.error('Error checking/creating profiles table:', err);
