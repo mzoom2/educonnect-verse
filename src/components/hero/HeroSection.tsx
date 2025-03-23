@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 const HeroSection = () => {
@@ -8,7 +9,7 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section id="hero" className="hero-section">
+    <section id="hero" className="hero-section pt-32 md:pt-40 pb-16 md:pb-24 relative min-h-[90vh] flex items-center">
       <div className="absolute inset-0 bg-gradient-radial from-edu-blue/5 to-transparent">
         {/* You can add animated particles or other decorative elements here */}
       </div>

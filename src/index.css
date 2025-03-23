@@ -102,6 +102,10 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-medium tracking-tight;
   }
+
+  img {
+    @apply max-w-full h-auto block;
+  }
 }
 
 @layer components {
@@ -193,4 +197,22 @@
   .container {
     @apply px-4 sm:px-6 lg:px-8;
   }
+
+  /* Add fade-in animation for page elements */
+  .animate-on-scroll {
+    animation: fade-in 0.5s ease-out forwards;
+  }
+
+  /* Make sure the header doesn't overlap content */
+  main {
+    @apply pt-20; /* Add padding to account for fixed header */
+  }
+}
+
+/* Remove all App.css styles that might be interfering */
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
 }
