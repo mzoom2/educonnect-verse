@@ -1,8 +1,10 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type AuthContextType = {
   session: Session | null;
@@ -79,16 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign up with email and password
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      // First check if the profiles table exists and create it if it doesn't
+      // First check if the profiles table exists
       const { error: tableCheckError } = await supabase
         .from('profiles')
         .select('id')
         .limit(1);
       
-      if (tableCheckError) {
-        console.log('Profiles table may not exist yet. Will be created when registering.');
-      }
-
+      let tableExists = !tableCheckError;
+      
       // Register the user
       const { error, data } = await supabase.auth.signUp({ 
         email, 
@@ -110,38 +110,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data?.user) {
-        try {
-          // Insert user data into profiles table
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{ 
-              id: data.user.id, 
-              username, 
-              email 
-            }]);
-          
-          if (profileError) {
-            console.error('Error saving profile:', profileError);
-            // If profile creation fails, don't fail the sign-up process
-            // Just log it and show a warning to the user
+        let profileSuccess = false;
+        
+        // Only try to insert into profiles if the table exists
+        if (tableExists) {
+          try {
+            // Insert user data into profiles table
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert([{ 
+                id: data.user.id, 
+                username, 
+                email 
+              }]);
+            
+            if (profileError) {
+              console.error('Error saving profile:', profileError);
+              toast({
+                title: "Profile setup incomplete",
+                description: "Your account was created, but profile setup needs to be completed later.",
+                variant: "destructive"
+              });
+            } else {
+              profileSuccess = true;
+              toast({
+                title: "Registration successful",
+                description: "Your account has been created",
+              });
+            }
+          } catch (profileErr) {
+            console.error('Profile creation error:', profileErr);
             toast({
               title: "Profile setup incomplete",
               description: "Your account was created, but profile setup needs to be completed later.",
               variant: "destructive"
             });
-          } else {
-            toast({
-              title: "Registration successful",
-              description: "Your account has been created",
-            });
           }
-        } catch (profileErr) {
-          console.error('Profile creation error:', profileErr);
+        } else {
+          // Table doesn't exist, show setup instructions
           toast({
-            title: "Profile setup incomplete",
-            description: "Your account was created, but profile setup needs to be completed later.",
+            title: "Account created but profile setup incomplete",
+            description: "Please contact an administrator to complete your account setup.",
             variant: "destructive"
           });
+          
+          // Display detailed alert for admin
+          console.log("Admin setup required: Create the profiles table in Supabase");
         }
         
         // In some Supabase configurations, email verification is required
@@ -150,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title: "Email verification required",
             description: "Please check your email to verify your account",
           });
-        } else {
+        } else if (profileSuccess) {
           navigate('/dashboard');
         }
       }

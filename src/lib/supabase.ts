@@ -17,45 +17,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
     if (error) {
       console.log('Setting up profiles table...');
       
-      // Create the profiles table directly using a SQL query
-      try {
-        // Use the query method instead of direct SQL
-        const { error: createTableError } = await supabase.query(`
-          CREATE TABLE IF NOT EXISTS public.profiles (
-            id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-            username TEXT UNIQUE,
-            email TEXT UNIQUE,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-          );
-          
-          -- Set up Row Level Security
-          ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-          
-          -- Create policies
-          CREATE POLICY "Public profiles are viewable by everyone."
-            ON public.profiles FOR SELECT
-            USING (true);
-            
-          CREATE POLICY "Users can insert their own profile."
-            ON public.profiles FOR INSERT
-            WITH CHECK (auth.uid() = id);
-            
-          CREATE POLICY "Users can update their own profile."
-            ON public.profiles FOR UPDATE
-            USING (auth.uid() = id);
-        `);
-        
-        if (createTableError) {
-          console.error('Failed to create profiles table:', createTableError);
-        } else {
-          console.log('Profiles table created successfully');
-        }
-      } catch (sqlErr) {
-        console.error('Error executing SQL query:', sqlErr);
-      }
+      // Note: We can't directly create tables from the client-side for security reasons
+      // The proper way is to have this set up in Supabase dashboard or through migrations
+      console.log('Please create the profiles table in the Supabase dashboard with the following structure:');
+      console.log(`
+        - id (UUID, Primary Key, References auth.users.id)
+        - username (Text, Unique)
+        - email (Text, Unique)
+        - created_at (Timestamp with time zone, Default: now())
+        - updated_at (Timestamp with time zone, Default: now())
+      `);
     }
   } catch (err) {
-    console.error('Error checking/creating profiles table:', err);
+    console.error('Error checking profiles table:', err);
   }
 })();
