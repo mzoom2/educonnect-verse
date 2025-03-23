@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -72,7 +71,9 @@ const Profile = () => {
       if (updateUserMetadata && user) {
         await updateUserMetadata(user.id, { 
           teacherApplication: {
-            ...values,
+            qualification: values.qualification,
+            experience: values.experience,
+            specialization: values.specialization,
             status: 'pending',
             submittedAt: new Date().toISOString()
           }
