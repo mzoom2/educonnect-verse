@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import DashboardCourseCard from './DashboardCourseCard';
 
 // Course type definition
-type Course = {
+export type Course = {
   id: string;
   image: string;
   title: string;
@@ -13,13 +13,18 @@ type Course = {
   duration: string;
   price: string;
   category: string;
+  createdAt?: string;
+  viewCount?: number;
+  enrollmentCount?: number;
+  popularityScore?: number;
 };
 
 interface CourseCarouselProps {
   courses: Course[];
+  emptyMessage?: string;
 }
 
-const CourseCarousel = ({ courses }: CourseCarouselProps) => {
+const CourseCarousel = ({ courses, emptyMessage = "No courses available" }: CourseCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -64,7 +69,7 @@ const CourseCarousel = ({ courses }: CourseCarouselProps) => {
   if (courses.length === 0) {
     return (
       <div className="bg-secondary/30 rounded-lg p-10 text-center">
-        <p className="text-muted-foreground">No courses available</p>
+        <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
