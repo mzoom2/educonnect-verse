@@ -57,11 +57,11 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <a 
           href="/" 
-          className="flex items-center gap-2 font-medium text-xl text-foreground"
-          aria-label="EduSocial"
+          className="flex items-center gap-0 font-medium text-xl text-foreground"
+          aria-label="Skillversity"
         >
-          <span className="text-edu-blue">Edu</span>
-          <span>Social</span>
+          <span className="text-edu-blue">Skill</span>
+          <span className="dark:text-white">versity</span>
         </a>
         
         {/* Desktop Navigation */}
