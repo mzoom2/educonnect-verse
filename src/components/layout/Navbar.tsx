@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import NavItemWithOnClick from './NavItemWithOnClick';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 interface NavItemProps {
   href: string;
@@ -50,7 +51,7 @@ export const Navbar = () => {
     <header 
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out backdrop-blur-md w-full",
-        scrolled ? "py-3 bg-background/80 shadow-sm" : "py-5 bg-transparent"
+        scrolled ? "py-3 bg-background/80 shadow-sm border-b border-border/40" : "py-5 bg-transparent"
       )}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -74,6 +75,7 @@ export const Navbar = () => {
         </nav>
         
         <div className="hidden md:flex items-center space-x-4">
+          <ThemeToggle />
           <a href="/login" className="nav-link">
             Login
           </a>
@@ -84,51 +86,57 @@ export const Navbar = () => {
         
         {/* Mobile Menu */}
         {isMobile ? (
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <button 
-                className="md:hidden text-foreground"
-                aria-label={isOpen ? "Close menu" : "Open menu"}
-              >
-                <Menu size={24} />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="pt-12 w-full sm:w-[350px]">
-              <nav className="flex flex-col">
-                <ul className="flex flex-col space-y-5 text-lg mb-8">
-                  <NavItemWithOnClick href="#features" className="text-lg" onClick={closeMenu}>
-                    Features
-                  </NavItemWithOnClick>
-                  <NavItemWithOnClick href="#courses" className="text-lg" onClick={closeMenu}>
-                    Courses
-                  </NavItemWithOnClick>
-                  <NavItemWithOnClick href="#testimonials" className="text-lg" onClick={closeMenu}>
-                    Testimonials
-                  </NavItemWithOnClick>
-                  <NavItemWithOnClick href="#pricing" className="text-lg" onClick={closeMenu}>
-                    Pricing
-                  </NavItemWithOnClick>
-                </ul>
-                
-                <div className="flex flex-col space-y-4">
-                  <a href="/login" className="btn-secondary w-full text-center" onClick={closeMenu}>
-                    Login
-                  </a>
-                  <a href="/register" className="btn-primary w-full text-center" onClick={closeMenu}>
-                    Sign Up
-                  </a>
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <button 
+                  className="text-foreground"
+                  aria-label={isOpen ? "Close menu" : "Open menu"}
+                >
+                  <Menu size={24} />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="pt-12 w-full sm:w-[350px]">
+                <nav className="flex flex-col">
+                  <ul className="flex flex-col space-y-5 text-lg mb-8">
+                    <NavItemWithOnClick href="#features" className="text-lg" onClick={closeMenu}>
+                      Features
+                    </NavItemWithOnClick>
+                    <NavItemWithOnClick href="#courses" className="text-lg" onClick={closeMenu}>
+                      Courses
+                    </NavItemWithOnClick>
+                    <NavItemWithOnClick href="#testimonials" className="text-lg" onClick={closeMenu}>
+                      Testimonials
+                    </NavItemWithOnClick>
+                    <NavItemWithOnClick href="#pricing" className="text-lg" onClick={closeMenu}>
+                      Pricing
+                    </NavItemWithOnClick>
+                  </ul>
+                  
+                  <div className="flex flex-col space-y-4">
+                    <a href="/login" className="btn-secondary w-full text-center" onClick={closeMenu}>
+                      Login
+                    </a>
+                    <a href="/register" className="btn-primary w-full text-center" onClick={closeMenu}>
+                      Sign Up
+                    </a>
+                  </div>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         ) : (
-          <button 
-            className="md:hidden text-foreground"
-            onClick={toggleMenu}
-            aria-label={isOpen ? "Close menu" : "Open menu"}
-          >
-            <Menu size={24} />
-          </button>
+          <div className="flex items-center space-x-2 md:hidden">
+            <ThemeToggle />
+            <button 
+              className="text-foreground"
+              onClick={toggleMenu}
+              aria-label={isOpen ? "Close menu" : "Open menu"}
+            >
+              <Menu size={24} />
+            </button>
+          </div>
         )}
       </div>
     </header>

@@ -106,7 +106,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl;
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl dark:bg-black/40 dark:border-white/10;
   }
   
   .glass-card-dark {
@@ -123,7 +123,7 @@
   
   .nav-link::after {
     content: '';
-    @apply absolute left-0 bottom-0 w-0 h-0.5 bg-edu-blue transition-all duration-300 ease-in-out;
+    @apply absolute left-0 bottom-0 w-0 h-0.5 bg-edu-blue transition-all duration-300 ease-in-out dark:bg-edu-light-blue;
   }
   
   .nav-link:hover::after {
@@ -131,7 +131,7 @@
   }
   
   .btn-primary {
-    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-edu-blue text-white hover:bg-edu-blue/90 h-10 px-4 py-2;
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-edu-blue text-white hover:bg-edu-blue/90 h-10 px-4 py-2 dark:bg-edu-light-blue dark:hover:bg-edu-light-blue/90;
   }
   
   .btn-secondary {
