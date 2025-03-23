@@ -18,13 +18,12 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [wantToTeach, setWantToTeach] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     // Here you would handle registration
-    console.log('Register with:', { email, username, password, wantToTeach });
+    console.log('Register with:', { email, username, password });
     // For demo purposes only:
     navigate('/');
   };
@@ -153,17 +152,6 @@ const Register = () => {
                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="teach" 
-                      className="rounded border-gray-300 text-edu-blue focus:ring-edu-blue"
-                      checked={wantToTeach}
-                      onChange={(e) => setWantToTeach(e.target.checked)}
-                    />
-                    <Label htmlFor="teach" className="text-sm font-normal">I want to teach courses</Label>
                   </div>
                   
                   <div className="flex items-start space-x-2">
