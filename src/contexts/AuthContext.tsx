@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import ProfileSetupAlert from '@/components/auth/ProfileSetupAlert';
 
 type AuthContextType = {
   session: Session | null;
@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showProfileSetupAlert, setShowProfileSetupAlert] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -115,17 +116,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Only try to insert into profiles if the table exists
         if (tableExists) {
           try {
-            // Insert user data into profiles table
+            // Insert user data into profiles table - use the UUID string directly
             const { error: profileError } = await supabase
               .from('profiles')
-              .insert([{ 
-                id: data.user.id, 
+              .insert({ 
+                id: data.user.id, // This is already a UUID string, no need to convert
                 username, 
                 email 
-              }]);
+              });
             
             if (profileError) {
               console.error('Error saving profile:', profileError);
+              setShowProfileSetupAlert(true);
               toast({
                 title: "Profile setup incomplete",
                 description: "Your account was created, but profile setup needs to be completed later.",
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (profileErr) {
             console.error('Profile creation error:', profileErr);
+            setShowProfileSetupAlert(true);
             toast({
               title: "Profile setup incomplete",
               description: "Your account was created, but profile setup needs to be completed later.",
@@ -148,14 +151,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           // Table doesn't exist, show setup instructions
+          setShowProfileSetupAlert(true);
           toast({
             title: "Account created but profile setup incomplete",
             description: "Please contact an administrator to complete your account setup.",
             variant: "destructive"
           });
-          
-          // Display detailed alert for admin
-          console.log("Admin setup required: Create the profiles table in Supabase");
         }
         
         // In some Supabase configurations, email verification is required
@@ -200,7 +201,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {showProfileSetupAlert && <ProfileSetupAlert />}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => {
