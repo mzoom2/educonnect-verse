@@ -8,6 +8,7 @@ type AuthContextType = {
   session: AuthSession | null;
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
   }>;
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -32,12 +34,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { session } } = localAuth.getSession();
     setSession(session);
     setUser(session?.user ?? null);
+    
+    // Check if user is admin
+    if (session?.user?.user_metadata?.role === 'admin') {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+    
     setLoading(false);
 
     // Listen for auth changes
     const { data: { subscription } } = localAuth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Check if user is admin
+      if (session?.user?.user_metadata?.role === 'admin') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+      
       setLoading(false);
     });
 
@@ -140,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user,
     loading,
+    isAdmin,
     signIn,
     signUp,
     signOut

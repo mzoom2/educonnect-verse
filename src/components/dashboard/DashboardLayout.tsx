@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, Home, BookOpen, Calendar, Settings, LogOut, 
-  Search, Bell, MessageSquare, User, ChevronDown 
+  Search, Bell, MessageSquare, User, ChevronDown, LayoutDashboard
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -65,6 +65,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <BookOpen size={16} className="mr-2" />
               Courses
             </Link>
+            {isAdmin && (
+              <Link to="/admin" className="px-3 py-2 text-sm rounded-md hover:bg-secondary transition-colors flex items-center">
+                <LayoutDashboard size={16} className="mr-2" />
+                Admin Panel
+              </Link>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="px-3 py-2 text-sm rounded-md hover:bg-secondary transition-colors flex items-center">
@@ -133,6 +139,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     Profile
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem>
+                    <Link to="/admin" className="w-full flex items-center">
+                      <LayoutDashboard size={16} className="mr-2" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem>
                   <Link to="/settings" className="w-full flex items-center">
                     <Settings size={16} className="mr-2" />
@@ -197,6 +211,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <BookOpen size={18} className="mr-3" />
               Courses
             </Link>
+            {isAdmin && (
+              <Link 
+                to="/admin" 
+                className="block w-full p-3 rounded-md hover:bg-secondary transition-colors flex items-center"
+                onClick={toggleSidebar}
+              >
+                <LayoutDashboard size={18} className="mr-3" />
+                Admin Panel
+              </Link>
+            )}
             <Link 
               to="/schedule" 
               className="block w-full p-3 rounded-md hover:bg-secondary transition-colors flex items-center"

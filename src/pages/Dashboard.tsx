@@ -1,12 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { localAuth } from '@/lib/localAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CourseCarousel from '@/components/dashboard/CourseCarousel';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 // Course type definition
 type Course = {
@@ -28,6 +29,28 @@ const Dashboard = () => {
   const [inDemandCourses, setInDemandCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Make the first user an admin on initial load (for demo purposes)
+  useEffect(() => {
+    const makeFirstUserAdmin = async () => {
+      if (user) {
+        const allUsers = localAuth.getAllUsers();
+        if (allUsers.length > 0 && allUsers[0].id === user.id) {
+          if (user.user_metadata.role !== 'admin') {
+            localAuth.updateUserMetadata(user.id, { role: 'admin' });
+            
+            // Show toast notification
+            toast({
+              title: "Admin Access Granted",
+              description: "You now have admin privileges. Access the admin panel from the navigation.",
+            });
+          }
+        }
+      }
+    };
+    
+    makeFirstUserAdmin();
+  }, [user, toast]);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -138,6 +161,15 @@ const Dashboard = () => {
             <p className="text-muted-foreground">
               Continue your learning journey. You have 0 courses in progress.
             </p>
+            {user?.user_metadata?.role === 'admin' && (
+              <div className="mt-4">
+                <Link to="/admin">
+                  <Button className="bg-edu-blue hover:bg-edu-blue/90">
+                    Access Admin Panel
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Recently Viewed Courses */}

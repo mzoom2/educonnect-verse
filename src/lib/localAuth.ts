@@ -1,12 +1,16 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 // Types for our local authentication system
 export interface User {
   id: string;
   email: string;
-  username: string;
   created_at: string;
+  user_metadata: {
+    username?: string;
+    avatar_url?: string;
+    role?: string;
+    last_login?: string;
+  };
 }
 
 export interface AuthSession {
@@ -43,6 +47,54 @@ class LocalAuthService {
       }
     }
     return null;
+  }
+  
+  // Get all users
+  getAllUsers(): User[] {
+    const users: User[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(`${this.storagePrefix}user_`)) {
+        const userData = localStorage.getItem(key);
+        if (userData) {
+          users.push(JSON.parse(userData) as User);
+        }
+      }
+    }
+    return users;
+  }
+
+  // Update user's metadata
+  updateUserMetadata(userId: string, metadata: Partial<User['user_metadata']>): User | null {
+    const userKey = `${this.storagePrefix}user_${userId}`;
+    const userData = localStorage.getItem(userKey);
+    
+    if (userData) {
+      const user = JSON.parse(userData) as User;
+      user.user_metadata = { ...user.user_metadata, ...metadata };
+      localStorage.setItem(userKey, JSON.stringify(user));
+      
+      // Update session if this user is the current user
+      const sessionData = localStorage.getItem(`${this.storagePrefix}session`);
+      if (sessionData) {
+        const session = JSON.parse(sessionData) as AuthSession;
+        if (session.user?.id === userId) {
+          session.user = user;
+          this.storeSession(session);
+        }
+      }
+      
+      return user;
+    }
+    
+    return null;
+  }
+  
+  // Record login activity
+  recordLogin(userId: string): void {
+    this.updateUserMetadata(userId, { 
+      last_login: new Date().toISOString()
+    });
   }
   
   // Store session in localStorage
@@ -88,8 +140,11 @@ class LocalAuthService {
       const user: User = {
         id: uuidv4(),
         email,
-        username: options?.data?.username || email.split('@')[0],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        user_metadata: {
+          username: options?.data?.username || email.split('@')[0],
+          role: 'student' // Default role for new users
+        }
       };
       
       // Store password securely (in a real app, you'd hash this)
@@ -137,6 +192,9 @@ class LocalAuthService {
           data: { user: null }
         };
       }
+      
+      // Record login
+      this.recordLogin(user.id);
       
       // Create and store session
       const session: AuthSession = {
