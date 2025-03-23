@@ -1,6 +1,4 @@
-
 import React, { useEffect, useState } from 'react';
-import { localAuth } from '@/lib/localAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CourseCarousel from '@/components/dashboard/CourseCarousel';
@@ -22,7 +20,7 @@ type Course = {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [recentCourses, setRecentCourses] = useState<Course[]>([]);
   const [popularCourses, setPopularCourses] = useState<Course[]>([]);
   const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([]);
@@ -30,27 +28,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Make the first user an admin on initial load (for demo purposes)
-  useEffect(() => {
-    const makeFirstUserAdmin = async () => {
-      if (user) {
-        const allUsers = localAuth.getAllUsers();
-        if (allUsers.length > 0 && allUsers[0].id === user.id) {
-          if (user.user_metadata.role !== 'admin') {
-            localAuth.updateUserMetadata(user.id, { role: 'admin' });
-            
-            // Show toast notification
-            toast({
-              title: "Admin Access Granted",
-              description: "You now have admin privileges. Access the admin panel from the navigation.",
-            });
-          }
-        }
-      }
-    };
-    
-    makeFirstUserAdmin();
-  }, [user, toast]);
+  // Removed the makeFirstUserAdmin function to ensure only the specified email has admin privileges
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -161,7 +139,7 @@ const Dashboard = () => {
             <p className="text-muted-foreground">
               Continue your learning journey. You have 0 courses in progress.
             </p>
-            {user?.user_metadata?.role === 'admin' && (
+            {isAdmin && (
               <div className="mt-4">
                 <Link to="/admin">
                   <Button className="bg-edu-blue hover:bg-edu-blue/90">

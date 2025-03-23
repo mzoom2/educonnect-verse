@@ -4,6 +4,9 @@ import { localAuth, User, AuthSession } from '@/lib/localAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
+// Define the specific admin email
+const ADMIN_EMAIL = "mzoomolabewa@gmail.com";
+
 type AuthContextType = {
   session: AuthSession | null;
   user: User | null;
@@ -35,8 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(session);
     setUser(session?.user ?? null);
     
-    // Check if user is admin
-    if (session?.user?.user_metadata?.role === 'admin') {
+    // Check if user has the admin email
+    if (session?.user?.email === ADMIN_EMAIL) {
       setIsAdmin(true);
     } else {
       setIsAdmin(false);
@@ -49,8 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Check if user is admin
-      if (session?.user?.user_metadata?.role === 'admin') {
+      // Check if user has the admin email
+      if (session?.user?.email === ADMIN_EMAIL) {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
