@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
 import PrivateRoute from './components/auth/PrivateRoute';
 
@@ -31,6 +32,7 @@ function App() {
             {/* Protected Routes */}
             <Route element={<PrivateRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<AdminPanel />} />
             </Route>
             

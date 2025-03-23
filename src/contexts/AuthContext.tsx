@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { localAuth, User, AuthSession } from '@/lib/localAuth';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +19,7 @@ type AuthContextType = {
     data: any;
   }>;
   signOut: () => Promise<void>;
+  updateUserMetadata: (userId: string, metadata: Partial<User['user_metadata']>) => Promise<User | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -157,6 +157,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // Update user metadata
+  const updateUserMetadata = async (userId: string, metadata: Partial<User['user_metadata']>) => {
+    try {
+      const updatedUser = localAuth.updateUserMetadata(userId, metadata);
+      
+      if (updatedUser) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully",
+        });
+      }
+      
+      return updatedUser;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error occurred');
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
   const value = {
     session,
     user,
@@ -164,7 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin,
     signIn,
     signUp,
-    signOut
+    signOut,
+    updateUserMetadata
   };
 
   return (
