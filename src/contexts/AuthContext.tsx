@@ -48,53 +48,114 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
-    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (!error) {
-      navigate('/dashboard');
+    try {
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (!error) {
+        navigate('/dashboard');
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+      
+      return { error };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error occurred');
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return { error };
     }
-    
-    return { error };
   };
 
   // Sign up with email and password
   const signUp = async (email: string, password: string, username: string) => {
-    // First register the user
-    const { error, data } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: { 
-          username 
+    try {
+      // First register the user
+      const { error, data } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: { 
+            username 
+          }
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Registration failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return { error, data: null };
+      }
+      
+      if (data?.user) {
+        // If successful, insert user data into profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: data.user.id, 
+            username, 
+            email 
+          }]);
+        
+        if (profileError) {
+          console.error('Error saving profile:', profileError);
+          toast({
+            title: "Profile creation failed",
+            description: profileError.message,
+            variant: "destructive"
+          });
+          return { error: new Error(profileError.message), data: null };
+        }
+        
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created",
+        });
+        
+        // In some Supabase configurations, email verification is required
+        if (data.user.identities && data.user.identities.length === 0) {
+          toast({
+            title: "Email verification required",
+            description: "Please check your email to verify your account",
+          });
+        } else {
+          navigate('/dashboard');
         }
       }
-    });
-    
-    if (!error) {
-      // If successful, insert user data into profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{ 
-          id: data.user?.id, 
-          username, 
-          email 
-        }]);
       
-      if (profileError) {
-        console.error('Error saving profile:', profileError);
-        return { error: new Error(profileError.message), data: null };
-      }
-      
-      navigate('/dashboard');
+      return { error: null, data };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error occurred');
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return { error, data: null };
     }
-    
-    return { error, data };
   };
 
   // Sign out
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
   };
 
   const value = {

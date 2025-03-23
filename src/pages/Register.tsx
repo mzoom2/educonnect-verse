@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -34,25 +33,18 @@ const Register = () => {
     
     try {
       const { error } = await signUp(email, password, username);
-      if (error) {
-        toast({
-          title: "Registration error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Registration successful",
-          description: "Your account has been created",
-          variant: "default"
-        });
+      
+      // Error handling is now done in the AuthContext with toast notifications
+      if (!error) {
+        // Reset form on success
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setUsername('');
+        setAgreeToTerms(false);
       }
     } catch (error) {
-      toast({
-        title: "An unexpected error occurred",
-        description: "Please try again later",
-        variant: "destructive"
-      });
+      console.error('Registration error:', error);
     } finally {
       setIsLoading(false);
     }
