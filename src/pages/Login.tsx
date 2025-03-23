@@ -8,20 +8,39 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Github, Eye, EyeOff, Mail, LockKeyhole, ArrowRight } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn } = useAuth();
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would handle authentication
-    console.log('Login with:', { email, password });
-    // For demo purposes only:
-    navigate('/');
+    setIsLoading(true);
+    
+    try {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({
+          title: "Authentication error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "An unexpected error occurred",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -121,8 +140,19 @@ const Login = () => {
                     />
                     <Label htmlFor="remember" className="text-sm font-normal">Remember me</Label>
                   </div>
-                  <Button type="submit" className="w-full bg-edu-blue hover:bg-edu-blue/90">
-                    Sign In <ArrowRight className="ml-2" size={16} />
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-edu-blue hover:bg-edu-blue/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center">
+                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        Signing in...
+                      </span>
+                    ) : (
+                      <>Sign In <ArrowRight className="ml-2" size={16} /></>
+                    )}
                   </Button>
                 </form>
                 

@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Github, Eye, EyeOff, Mail, LockKeyhole, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,18 +19,44 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const navigate = useNavigate();
-
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would handle registration
-    console.log('Register with:', { email, username, password });
-    // For demo purposes only:
-    navigate('/');
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const { signUp } = useAuth();
+  const { toast } = useToast();
   
   const passwordsMatch = password === confirmPassword;
   const canSubmit = email && username && password && confirmPassword && passwordsMatch && agreeToTerms;
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const { error } = await signUp(email, password, username);
+      if (error) {
+        toast({
+          title: "Registration error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "An unexpected error occurred",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -178,9 +205,16 @@ const Register = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-edu-blue hover:bg-edu-blue/90"
-                    disabled={!canSubmit}
+                    disabled={!canSubmit || isLoading}
                   >
-                    Create Account <ArrowRight className="ml-2" size={16} />
+                    {isLoading ? (
+                      <span className="flex items-center">
+                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        Creating account...
+                      </span>
+                    ) : (
+                      <>Create Account <ArrowRight className="ml-2" size={16} /></>
+                    )}
                   </Button>
                 </form>
                 
