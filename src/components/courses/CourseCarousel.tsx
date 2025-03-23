@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
 
 const CourseCarousel = () => {
@@ -13,16 +13,14 @@ const CourseCarousel = () => {
     
     const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
     setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5); // 5px buffer for rounding errors
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
   };
   
   useEffect(() => {
     const carousel = carouselRef.current;
     if (carousel) {
       carousel.addEventListener('scroll', updateScrollButtons);
-      // Initial check
       updateScrollButtons();
-      // Check on window resize
       window.addEventListener('resize', updateScrollButtons);
     }
     
@@ -38,7 +36,7 @@ const CourseCarousel = () => {
     if (!carouselRef.current) return;
     
     const carousel = carouselRef.current;
-    const scrollAmount = carousel.clientWidth * 0.75; // 75% of visible width
+    const scrollAmount = carousel.clientWidth * 0.75;
     
     if (direction === 'left') {
       carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
@@ -49,7 +47,7 @@ const CourseCarousel = () => {
   
   const courses = [
     {
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Introduction to Machine Learning with Python",
       author: "Dr. Sarah Johnson",
       rating: 4.8,
@@ -58,7 +56,7 @@ const CourseCarousel = () => {
       category: "Data Science"
     },
     {
-      image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1206&q=80",
+      image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
       title: "Modern Web Development: React & Node.js",
       author: "Michael Chen",
       rating: 4.7,
@@ -67,7 +65,16 @@ const CourseCarousel = () => {
       category: "Programming"
     },
     {
-      image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+      image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Fundamentals of UI/UX Design",
+      author: "Emma Thompson",
+      rating: 4.9,
+      duration: "6 weeks",
+      price: "₦14,500",
+      category: "Design"
+    },
+    {
+      image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Digital Marketing Fundamentals",
       author: "Jessica Adams",
       rating: 4.6,
@@ -76,7 +83,7 @@ const CourseCarousel = () => {
       category: "Marketing"
     },
     {
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Financial Planning & Investment Strategies",
       author: "Robert Williams",
       rating: 4.9,
@@ -85,30 +92,25 @@ const CourseCarousel = () => {
       category: "Finance"
     },
     {
-      image: "https://images.unsplash.com/photo-1606761568499-6d2451b23c66?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
-      title: "UI/UX Design Principles & Adobe XD",
-      author: "Emma Thompson",
-      rating: 4.5,
-      duration: "8 weeks",
-      price: "₦16,000",
-      category: "Design"
-    },
-    {
-      image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-      title: "Mobile App Development with Flutter",
-      author: "Alex Rodriguez",
+      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Data Analytics for Business Decision-Making",
+      author: "Daniel Morgan",
       rating: 4.7,
-      duration: "12 weeks",
-      price: "₦22,000",
-      category: "Programming"
+      duration: "9 weeks",
+      price: "₦19,500",
+      category: "Business"
     }
   ];
 
   return (
-    <section id="courses" className="section-padding">
+    <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-12">
           <div>
+            <div className="inline-flex items-center mb-4 bg-edu-blue/10 rounded-full px-4 py-1.5">
+              <BookOpen size={16} className="text-edu-blue mr-2" />
+              <span className="text-sm font-medium text-edu-blue">Top-Rated Courses</span>
+            </div>
             <h2 className="section-heading mb-3">
               Trending <span className="text-edu-blue">Courses</span>
             </h2>
@@ -121,7 +123,7 @@ const CourseCarousel = () => {
             <button 
               onClick={() => scroll('left')}
               disabled={!canScrollLeft}
-              className="p-2 rounded-full border bg-background hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-3 rounded-full border bg-background hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Scroll left"
             >
               <ChevronLeft size={20} />
@@ -129,7 +131,7 @@ const CourseCarousel = () => {
             <button 
               onClick={() => scroll('right')}
               disabled={!canScrollRight}
-              className="p-2 rounded-full border bg-background hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-3 rounded-full border bg-background hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Scroll right"
             >
               <ChevronRight size={20} />
@@ -138,15 +140,15 @@ const CourseCarousel = () => {
         </div>
         
         <div 
-          className="overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4"
+          className="overflow-x-auto scrollbar-hide pb-8 -mx-4 px-4"
           ref={carouselRef}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          <div className="flex space-x-5" style={{ minWidth: 'min-content' }}>
+          <div className="flex space-x-6" style={{ minWidth: 'min-content' }}>
             {courses.map((course, index) => (
               <div 
                 key={index} 
-                className="min-w-[280px] max-w-[280px] sm:min-w-[320px] sm:max-w-[320px]"
+                className="min-w-[300px] max-w-[300px] sm:min-w-[320px] sm:max-w-[320px]"
               >
                 <CourseCard {...course} />
               </div>
@@ -154,8 +156,8 @@ const CourseCarousel = () => {
           </div>
         </div>
         
-        <div className="mt-8 text-center">
-          <a href="/courses" className="btn-primary px-6">
+        <div className="mt-10 text-center">
+          <a href="/courses" className="btn-primary px-6 py-3 text-base">
             View All Courses
           </a>
         </div>
