@@ -36,7 +36,7 @@ const Register = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       
-      <div className="flex-1 flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden mt-16">
         {/* Background Elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute -top-[30%] -left-[10%] w-[50%] h-[50%] rounded-full bg-edu-green/5 blur-3xl animate-float"></div>
