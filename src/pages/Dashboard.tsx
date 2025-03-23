@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -127,6 +128,10 @@ const Dashboard = () => {
     );
   }
 
+  // Get user's name from username in metadata, or email, or fallback to "Student"
+  const userName = user?.user_metadata?.username || 
+                  (user?.email ? user.email.split('@')[0] : 'Student');
+
   return (
     <DashboardLayout>
       <div className="py-6">
@@ -134,7 +139,7 @@ const Dashboard = () => {
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-edu-blue/10 to-edu-purple/10 rounded-lg p-6 mb-8">
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              Welcome back, {user?.user_metadata?.username || 'Student'}!
+              Welcome back, {userName}!
             </h1>
             <p className="text-muted-foreground">
               Continue your learning journey. You have 0 courses in progress.
