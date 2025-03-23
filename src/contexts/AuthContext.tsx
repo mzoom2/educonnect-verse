@@ -80,7 +80,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign up with email and password
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      // First register the user
+      // First check if the profiles table exists and create it if it doesn't
+      const { error: tableCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
+      
+      if (tableCheckError) {
+        console.log('Creating profiles table...');
+        // Create the profiles table if it doesn't exist
+        const { error: createTableError } = await supabase.rpc('create_profiles_table');
+        if (createTableError && !createTableError.message.includes('already exists')) {
+          console.error('Error creating profiles table:', createTableError);
+          toast({
+            title: "Setup error",
+            description: "There was an issue setting up your account. Please try again later.",
+            variant: "destructive"
+          });
+          return { error: new Error(createTableError.message), data: null };
+        }
+      }
+
+      // Register the user
       const { error, data } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -101,29 +122,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data?.user) {
-        // If successful, insert user data into profiles table
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{ 
-            id: data.user.id, 
-            username, 
-            email 
-          }]);
-        
-        if (profileError) {
-          console.error('Error saving profile:', profileError);
+        try {
+          // Insert user data into profiles table
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ 
+              id: data.user.id, 
+              username, 
+              email 
+            }]);
+          
+          if (profileError) {
+            console.error('Error saving profile:', profileError);
+            // If profile creation fails, don't fail the sign-up process
+            // Just log it and show a warning to the user
+            toast({
+              title: "Profile setup incomplete",
+              description: "Your account was created, but profile setup needs to be completed later.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Registration successful",
+              description: "Your account has been created",
+            });
+          }
+        } catch (profileErr) {
+          console.error('Profile creation error:', profileErr);
           toast({
-            title: "Profile creation failed",
-            description: profileError.message,
+            title: "Profile setup incomplete",
+            description: "Your account was created, but profile setup needs to be completed later.",
             variant: "destructive"
           });
-          return { error: new Error(profileError.message), data: null };
         }
-        
-        toast({
-          title: "Registration successful",
-          description: "Your account has been created",
-        });
         
         // In some Supabase configurations, email verification is required
         if (data.user.identities && data.user.identities.length === 0) {
