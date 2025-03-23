@@ -64,33 +64,40 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           placeholder="Search for courses..." 
           value={searchTerm}
           onValueChange={handleSearchChange}
+          autoFocus
         />
         <CommandList>
-          {loading ? (
+          {searchTerm.trim() === "" ? (
+            <CommandEmpty>Start typing to see suggestions...</CommandEmpty>
+          ) : loading ? (
             <div className="flex items-center justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-edu-blue"></div>
             </div>
           ) : (
             <>
-              <CommandEmpty>No courses found matching your search.</CommandEmpty>
-              <CommandGroup heading="Courses">
-                {searchResults.map((course) => (
-                  <CommandItem 
-                    key={course.id}
-                    onSelect={() => handleSelectCourse(course.id)}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 mr-2 rounded overflow-hidden">
-                        <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+              {searchResults.length === 0 ? (
+                <CommandEmpty>No courses found matching "{searchTerm}"</CommandEmpty>
+              ) : (
+                <CommandGroup heading={`${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} found`}>
+                  {searchResults.map((course) => (
+                    <CommandItem 
+                      key={course.id}
+                      onSelect={() => handleSelectCourse(course.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 mr-2 rounded overflow-hidden">
+                          <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{course.title}</p>
+                          <p className="text-xs text-muted-foreground">{course.category} • {course.author}</p>
+                        </div>
                       </div>
-                      <div>
-                        {course.title}
-                        <p className="text-xs text-muted-foreground">{course.category}</p>
-                      </div>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
             </>
           )}
         </CommandList>

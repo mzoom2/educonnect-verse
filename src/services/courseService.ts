@@ -174,14 +174,25 @@ export function useAllCourses() {
 export function useSearchCourses(searchTerm: string) {
   const { courses, loading, error } = useAllCourses();
   const [searchResults, setSearchResults] = useState<Course[]>([]);
+  const [debouncedTerm, setDebouncedTerm] = useState(searchTerm);
 
+  // Update debounced value after 300ms of no typing
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    const timer = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Process search when debounced term changes
+  useEffect(() => {
+    if (!debouncedTerm.trim()) {
       setSearchResults([]);
       return;
     }
 
-    const term = searchTerm.toLowerCase();
+    const term = debouncedTerm.toLowerCase();
     const results = courses.filter(
       course => 
         course.title.toLowerCase().includes(term) || 
@@ -190,7 +201,7 @@ export function useSearchCourses(searchTerm: string) {
     );
 
     setSearchResults(results);
-  }, [searchTerm, courses]);
+  }, [debouncedTerm, courses]);
 
   return { searchResults, loading, error };
 }
