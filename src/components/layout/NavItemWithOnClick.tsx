@@ -10,18 +10,18 @@ interface NavItemWithOnClickProps {
 
 const NavItemWithOnClick = ({ children, href, className, onClick }: NavItemWithOnClickProps) => {
   return (
-    <a 
-      href={href} 
-      className={className || "nav-link"} 
-      onClick={(e) => {
-        if (href.startsWith('#')) {
+    <li>
+      <a 
+        href={href} 
+        className={className || "nav-link"} 
+        onClick={(e) => {
           e.preventDefault();
           onClick();
-        }
-      }}
-    >
-      {children}
-    </a>
+        }}
+      >
+        {children}
+      </a>
+    </li>
   );
 };
 

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -141,7 +142,6 @@
     @apply relative overflow-hidden glass-card p-6 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02] transform;
   }
   
-  /* Fixed: Removed 'group' from @apply and made it a separate class */
   .course-card {
     @apply glass-card p-4 transition-all duration-300 ease-in-out hover:shadow-lg;
   }
@@ -151,23 +151,23 @@
   }
   
   .section-padding {
-    @apply py-16 md:py-24;
+    @apply py-12 md:py-20 lg:py-24;
   }
   
   .hero-heading {
-    @apply font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-balance;
+    @apply font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-balance;
   }
   
   .hero-subheading {
-    @apply text-xl md:text-2xl text-muted-foreground max-w-[42rem] leading-normal text-balance;
+    @apply text-lg md:text-xl text-muted-foreground max-w-[42rem] leading-normal text-balance;
   }
   
   .section-heading {
-    @apply font-semibold text-3xl md:text-4xl tracking-tight mb-4 text-balance;
+    @apply font-semibold text-2xl sm:text-3xl md:text-4xl tracking-tight mb-4 text-balance;
   }
   
   .section-subheading {
-    @apply text-xl text-muted-foreground max-w-[42rem] leading-normal mb-8 text-balance;
+    @apply text-base sm:text-lg md:text-xl text-muted-foreground max-w-[42rem] leading-normal mb-6 md:mb-8 text-balance;
   }
 
   .animate-delay-100 {
@@ -188,5 +188,9 @@
   
   .animate-delay-500 {
     animation-delay: 500ms;
+  }
+  
+  .container {
+    @apply px-4 sm:px-6 lg:px-8;
   }
 }
