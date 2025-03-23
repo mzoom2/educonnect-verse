@@ -48,7 +48,7 @@ const HeroSection = () => {
           
           {/* Subheading */}
           <p className="hero-subheading animate-on-scroll opacity-0 animate-delay-100 mb-6 md:mb-8">
-            Skillversity combines intelligent learning management with social networking features to create personalized, engaging learning experiences.
+            EduSocial combines intelligent learning management with social networking features to create personalized, engaging learning experiences.
           </p>
           
           {/* CTA Buttons */}

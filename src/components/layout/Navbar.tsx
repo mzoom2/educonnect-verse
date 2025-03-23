@@ -58,10 +58,10 @@ export const Navbar = () => {
         <a 
           href="/" 
           className="flex items-center gap-2 font-medium text-xl text-foreground"
-          aria-label="Skillversity"
+          aria-label="EduSocial"
         >
-          <span className="text-edu-blue">Skill</span>
-          <span>versity</span>
+          <span className="text-edu-blue">Edu</span>
+          <span>Social</span>
         </a>
         
         {/* Desktop Navigation */}

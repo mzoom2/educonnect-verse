@@ -10,9 +10,9 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div>
-            <a href="/" className="flex items-center gap-2 font-medium text-xl text-foreground mb-4" aria-label="Skillversity">
-              <span className="text-edu-blue">Skill</span>
-              <span>versity</span>
+            <a href="/" className="flex items-center gap-2 font-medium text-xl text-foreground mb-4" aria-label="EduSocial">
+              <span className="text-edu-blue">Edu</span>
+              <span>Social</span>
             </a>
             <p className="text-muted-foreground mb-6">
               An advanced interactive educational platform that combines intelligent learning management with social networking features.
@@ -73,7 +73,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-muted-foreground text-sm">
-              &copy; {currentYear} Skillversity. All rights reserved.
+              &copy; {currentYear} EduSocial. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-sm text-muted-foreground hover:text-edu-blue transition-colors">Terms of Service</a>
