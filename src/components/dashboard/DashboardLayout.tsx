@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, Home, BookOpen, Calendar, Settings, LogOut, 
-  Bell, MessageSquare, User, ChevronDown, LayoutDashboard
+  Bell, MessageSquare, User, ChevronDown, LayoutDashboard, Search
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
