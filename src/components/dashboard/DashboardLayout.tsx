@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -37,7 +38,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { searchResults, loading, handleSearch } = useSearchCourses();
   const navigate = useNavigate();
 
-  // This effect ensures that the search results are maintained when the dialog reopens
+  // Handle search when dialog opens and input value exists
   useEffect(() => {
     if (searchDialogOpen && inputValue.trim() !== "") {
       handleSearch(inputValue);
@@ -57,14 +58,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setInputValue(value);
   };
 
-  const handleSearchSubmit = () => {
+  // Explicitly handle search on submit
+  const handleSearchSubmit = useCallback(() => {
     if (inputValue.trim() !== "") {
+      console.log("Searching for:", inputValue);
       handleSearch(inputValue);
     }
-  };
+  }, [inputValue, handleSearch]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSearchSubmit();
     }
   };

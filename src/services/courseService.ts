@@ -1,6 +1,5 @@
-
 import { Course } from '@/components/dashboard/CourseCarousel';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 // Mock database of courses
 const coursesDB: Course[] = [
@@ -177,8 +176,9 @@ export function useSearchCourses(initialSearchTerm: string = '') {
   const [searchResults, setSearchResults] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // Function to handle search submission
-  const handleSearch = (term: string) => {
+  // Use useCallback to memoize the handleSearch function to prevent it from
+  // being recreated on every render, which can cause issues with useEffect dependencies
+  const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
     
     if (!term.trim()) {
@@ -188,20 +188,25 @@ export function useSearchCourses(initialSearchTerm: string = '') {
     
     setLoading(true);
     
-    // Simulate a brief loading period for better UX
-    setTimeout(() => {
-      const searchTermLower = term.toLowerCase();
-      const results = courses.filter(
-        course => 
-          course.title.toLowerCase().includes(searchTermLower) || 
-          course.category.toLowerCase().includes(searchTermLower) ||
-          course.author.toLowerCase().includes(searchTermLower)
-      );
-      
-      setSearchResults(results);
-      setLoading(false);
-    }, 300);
-  };
+    // Immediate search to show results faster
+    const searchTermLower = term.toLowerCase();
+    const results = courses.filter(
+      course => 
+        course.title.toLowerCase().includes(searchTermLower) || 
+        course.category.toLowerCase().includes(searchTermLower) ||
+        course.author.toLowerCase().includes(searchTermLower)
+    );
+    
+    setSearchResults(results);
+    setLoading(false);
+  }, [courses]);
+
+  // Run search when initialSearchTerm changes
+  useEffect(() => {
+    if (initialSearchTerm) {
+      handleSearch(initialSearchTerm);
+    }
+  }, [initialSearchTerm, handleSearch]);
 
   return { 
     searchResults, 
