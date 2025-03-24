@@ -1,4 +1,3 @@
-
 import { Course } from '@/components/dashboard/CourseCarousel';
 import { useEffect, useState } from 'react';
 
@@ -174,25 +173,15 @@ export function useAllCourses() {
 export function useSearchCourses(searchTerm: string) {
   const { courses, loading, error } = useAllCourses();
   const [searchResults, setSearchResults] = useState<Course[]>([]);
-  const [debouncedTerm, setDebouncedTerm] = useState(searchTerm);
-
-  // Update debounced value after 300ms of no typing
+  
+  // Process search immediately when term changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedTerm(searchTerm);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // Process search when debounced term changes
-  useEffect(() => {
-    if (!debouncedTerm.trim()) {
+    if (!searchTerm.trim()) {
       setSearchResults([]);
       return;
     }
 
-    const term = debouncedTerm.toLowerCase();
+    const term = searchTerm.toLowerCase();
     const results = courses.filter(
       course => 
         course.title.toLowerCase().includes(term) || 
@@ -201,7 +190,7 @@ export function useSearchCourses(searchTerm: string) {
     );
 
     setSearchResults(results);
-  }, [debouncedTerm, courses]);
+  }, [searchTerm, courses]);
 
   return { searchResults, loading, error };
 }

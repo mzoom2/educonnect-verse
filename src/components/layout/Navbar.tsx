@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -111,15 +110,18 @@ export const Navbar = () => {
                     <CommandItem 
                       key={course.id}
                       onSelect={() => handleSelectCourse(course.id)}
-                      className="cursor-pointer"
+                      className="cursor-pointer hover:bg-accent"
                     >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 mr-2 rounded overflow-hidden">
+                      <div className="flex items-center w-full">
+                        <div className="w-10 h-10 mr-3 rounded overflow-hidden">
                           <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <p className="text-sm font-medium">{course.title}</p>
                           <p className="text-xs text-muted-foreground">{course.category} • {course.author}</p>
+                        </div>
+                        <div className="text-sm font-medium text-edu-blue">
+                          {course.price}
                         </div>
                       </div>
                     </CommandItem>
