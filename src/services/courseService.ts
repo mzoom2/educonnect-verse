@@ -1,5 +1,6 @@
+
 import { Course } from '@/components/dashboard/CourseCarousel';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 
 // Mock database of courses
 const coursesDB: Course[] = [
@@ -170,51 +171,28 @@ export function useAllCourses() {
   return { courses, loading, error };
 }
 
-export function useSearchCourses(initialSearchTerm: string = '') {
-  const { courses, loading: coursesLoading, error } = useAllCourses();
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+export function useSearchCourses(searchTerm: string) {
+  const { courses, loading, error } = useAllCourses();
   const [searchResults, setSearchResults] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(false);
-  
-  // Use useCallback to memoize the handleSearch function to prevent it from
-  // being recreated on every render, which can cause issues with useEffect dependencies
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term);
-    
-    if (!term.trim()) {
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
       setSearchResults([]);
       return;
     }
-    
-    setLoading(true);
-    
-    // Immediate search to show results faster
-    const searchTermLower = term.toLowerCase();
+
+    const term = searchTerm.toLowerCase();
     const results = courses.filter(
       course => 
-        course.title.toLowerCase().includes(searchTermLower) || 
-        course.category.toLowerCase().includes(searchTermLower) ||
-        course.author.toLowerCase().includes(searchTermLower)
+        course.title.toLowerCase().includes(term) || 
+        course.category.toLowerCase().includes(term) ||
+        course.author.toLowerCase().includes(term)
     );
-    
+
     setSearchResults(results);
-    setLoading(false);
-  }, [courses]);
+  }, [searchTerm, courses]);
 
-  // Run search when initialSearchTerm changes
-  useEffect(() => {
-    if (initialSearchTerm) {
-      handleSearch(initialSearchTerm);
-    }
-  }, [initialSearchTerm, handleSearch]);
-
-  return { 
-    searchResults, 
-    loading: loading || coursesLoading, 
-    error, 
-    searchTerm, 
-    handleSearch 
-  };
+  return { searchResults, loading, error };
 }
 
 export function getRecentCourses(courses: Course[]): Course[] {

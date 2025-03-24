@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, Home, BookOpen, Calendar, Settings, LogOut, 
-  Bell, MessageSquare, User, ChevronDown, LayoutDashboard, Search
+  Search, Bell, MessageSquare, User, ChevronDown, LayoutDashboard
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
@@ -16,15 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  CommandDialog, 
-  CommandInput, 
-  CommandList, 
-  CommandEmpty, 
-  CommandGroup, 
-  CommandItem 
-} from "@/components/ui/command";
-import { useSearchCourses } from '@/services/courseService';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -33,17 +24,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, signOut, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  const { searchResults, loading, handleSearch } = useSearchCourses();
   const navigate = useNavigate();
-
-  // Handle search when dialog opens and input value exists
-  useEffect(() => {
-    if (searchDialogOpen && inputValue.trim() !== "") {
-      handleSearch(inputValue);
-    }
-  }, [searchDialogOpen, inputValue, handleSearch]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -54,91 +35,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const handleInputChange = (value: string) => {
-    setInputValue(value);
-  };
-
-  // Explicitly handle search on submit
-  const handleSearchSubmit = useCallback(() => {
-    if (inputValue.trim() !== "") {
-      console.log("Searching for:", inputValue);
-      handleSearch(inputValue);
-    }
-  }, [inputValue, handleSearch]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearchSubmit();
-    }
-  };
-
-  const handleSelectCourse = (courseId: string) => {
-    setSearchDialogOpen(false);
-    navigate(`/courses/${courseId}`);
-  };
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Search Dialog */}
-      <CommandDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
-        <div className="flex items-center border-b px-3">
-          <CommandInput 
-            placeholder="Search for courses..." 
-            value={inputValue}
-            onValueChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleSearchSubmit}
-            className="ml-2"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
-        <CommandList>
-          {inputValue.trim() === "" ? (
-            <CommandEmpty>Type and press Enter to search...</CommandEmpty>
-          ) : loading ? (
-            <div className="flex items-center justify-center p-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-edu-blue"></div>
-            </div>
-          ) : (
-            <>
-              {searchResults.length === 0 ? (
-                <CommandEmpty>No courses found matching "{inputValue}"</CommandEmpty>
-              ) : (
-                <CommandGroup heading={`${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} found`}>
-                  {searchResults.map((course) => (
-                    <CommandItem 
-                      key={course.id}
-                      onSelect={() => handleSelectCourse(course.id)}
-                      className="cursor-pointer hover:bg-accent"
-                    >
-                      <div className="flex items-center w-full">
-                        <div className="w-10 h-10 mr-3 rounded overflow-hidden">
-                          <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{course.title}</p>
-                          <p className="text-xs text-muted-foreground">{course.category} • {course.author}</p>
-                        </div>
-                        <div className="text-sm font-medium text-edu-blue">
-                          {course.price}
-                        </div>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-            </>
-          )}
-        </CommandList>
-      </CommandDialog>
-
       {/* Top Navbar */}
       <header className="border-b border-border/40 bg-background z-40 sticky top-0">
         <div className="flex h-16 items-center px-4">
@@ -197,18 +95,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </DropdownMenu>
           </nav>
           
-          {/* Search Bar with keyboard shortcut - Desktop */}
+          {/* Search Bar - Desktop */}
           <div className="hidden lg:flex relative mx-auto w-full max-w-md">
-            <Button
-              variant="outline"
-              className="relative w-full justify-start text-sm text-muted-foreground"
-              onClick={() => setSearchDialogOpen(true)}
-            >
-              <span className="inline-flex">Search for courses...</span>
-              <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            </Button>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+            <input
+              type="search"
+              placeholder="Search for courses..."
+              className="bg-secondary/50 focus:bg-background border border-input rounded-full pl-10 pr-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-edu-blue/20 text-sm"
+            />
           </div>
           
           {/* Right Side */}
@@ -271,13 +165,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         
         {/* Mobile Search */}
         <div className="lg:hidden px-4 pb-3">
-          <Button
-            variant="outline"
-            className="relative w-full justify-start text-sm text-muted-foreground"
-            onClick={() => setSearchDialogOpen(true)}
-          >
-            <span className="inline-flex">Search for courses...</span>
-          </Button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+            <input
+              type="search"
+              placeholder="Search for courses..."
+              className="bg-secondary/50 focus:bg-background border border-input rounded-full pl-10 pr-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-edu-blue/20 text-sm"
+            />
+          </div>
         </div>
       </header>
       
