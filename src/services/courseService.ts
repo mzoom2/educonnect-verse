@@ -1,3 +1,4 @@
+
 import { Course } from '@/components/dashboard/CourseCarousel';
 import { useEffect, useState } from 'react';
 
@@ -171,9 +172,10 @@ export function useAllCourses() {
 }
 
 export function useSearchCourses(initialSearchTerm: string = '') {
-  const { courses, loading, error } = useAllCourses();
+  const { courses, loading: coursesLoading, error } = useAllCourses();
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [searchResults, setSearchResults] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(false);
   
   // Function to handle search submission
   const handleSearch = (term: string) => {
@@ -184,20 +186,26 @@ export function useSearchCourses(initialSearchTerm: string = '') {
       return;
     }
     
-    const searchTermLower = term.toLowerCase();
-    const results = courses.filter(
-      course => 
-        course.title.toLowerCase().includes(searchTermLower) || 
-        course.category.toLowerCase().includes(searchTermLower) ||
-        course.author.toLowerCase().includes(searchTermLower)
-    );
+    setLoading(true);
     
-    setSearchResults(results);
+    // Simulate a brief loading period for better UX
+    setTimeout(() => {
+      const searchTermLower = term.toLowerCase();
+      const results = courses.filter(
+        course => 
+          course.title.toLowerCase().includes(searchTermLower) || 
+          course.category.toLowerCase().includes(searchTermLower) ||
+          course.author.toLowerCase().includes(searchTermLower)
+      );
+      
+      setSearchResults(results);
+      setLoading(false);
+    }, 300);
   };
 
   return { 
     searchResults, 
-    loading, 
+    loading: loading || coursesLoading, 
     error, 
     searchTerm, 
     handleSearch 

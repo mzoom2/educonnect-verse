@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -38,6 +37,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { searchResults, loading, handleSearch } = useSearchCourses();
   const navigate = useNavigate();
 
+  // This effect ensures that the search results are maintained when the dialog reopens
+  useEffect(() => {
+    if (searchDialogOpen && inputValue.trim() !== "") {
+      handleSearch(inputValue);
+    }
+  }, [searchDialogOpen, inputValue, handleSearch]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
@@ -52,7 +58,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const handleSearchSubmit = () => {
-    handleSearch(inputValue);
+    if (inputValue.trim() !== "") {
+      handleSearch(inputValue);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
