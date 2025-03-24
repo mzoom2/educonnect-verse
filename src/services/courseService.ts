@@ -170,29 +170,38 @@ export function useAllCourses() {
   return { courses, loading, error };
 }
 
-export function useSearchCourses(searchTerm: string) {
+export function useSearchCourses(initialSearchTerm: string = '') {
   const { courses, loading, error } = useAllCourses();
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [searchResults, setSearchResults] = useState<Course[]>([]);
   
-  // Process search immediately when term changes
-  useEffect(() => {
-    if (!searchTerm.trim()) {
+  // Function to handle search submission
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    
+    if (!term.trim()) {
       setSearchResults([]);
       return;
     }
-
-    const term = searchTerm.toLowerCase();
+    
+    const searchTermLower = term.toLowerCase();
     const results = courses.filter(
       course => 
-        course.title.toLowerCase().includes(term) || 
-        course.category.toLowerCase().includes(term) ||
-        course.author.toLowerCase().includes(term)
+        course.title.toLowerCase().includes(searchTermLower) || 
+        course.category.toLowerCase().includes(searchTermLower) ||
+        course.author.toLowerCase().includes(searchTermLower)
     );
-
+    
     setSearchResults(results);
-  }, [searchTerm, courses]);
+  };
 
-  return { searchResults, loading, error };
+  return { 
+    searchResults, 
+    loading, 
+    error, 
+    searchTerm, 
+    handleSearch 
+  };
 }
 
 export function getRecentCourses(courses: Course[]): Course[] {

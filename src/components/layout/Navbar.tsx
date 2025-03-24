@@ -42,8 +42,8 @@ export const Navbar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const { searchResults, loading } = useSearchCourses(searchQuery);
+  const [inputValue, setInputValue] = useState("");
+  const { searchResults, loading, handleSearch } = useSearchCourses();
   const navigate = useNavigate();
   const location = useLocation();
   const isDashboard = location.pathname.includes('/dashboard');
@@ -75,8 +75,18 @@ export const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleSearch = (term: string) => {
-    setSearchQuery(term);
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+  };
+
+  const handleSearchSubmit = () => {
+    handleSearch(inputValue);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
   };
 
   const handleSelectCourse = (courseId: string) => {
@@ -87,15 +97,26 @@ export const Navbar = () => {
   return (
     <>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
-          placeholder="Search courses..." 
-          value={searchQuery}
-          onValueChange={handleSearch}
-          autoFocus
-        />
+        <div className="flex items-center border-b px-3">
+          <CommandInput 
+            placeholder="Search courses..." 
+            value={inputValue}
+            onValueChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleSearchSubmit}
+            className="ml-2"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
         <CommandList>
-          {searchQuery.trim() === "" ? (
-            <CommandEmpty>Start typing to see suggestions...</CommandEmpty>
+          {inputValue.trim() === "" ? (
+            <CommandEmpty>Type and press Enter to search...</CommandEmpty>
           ) : loading ? (
             <div className="flex items-center justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-edu-blue"></div>
@@ -103,7 +124,7 @@ export const Navbar = () => {
           ) : (
             <>
               {searchResults.length === 0 ? (
-                <CommandEmpty>No courses found matching "{searchQuery}"</CommandEmpty>
+                <CommandEmpty>No courses found matching "{inputValue}"</CommandEmpty>
               ) : (
                 <CommandGroup heading={`${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} found`}>
                   {searchResults.map((course) => (

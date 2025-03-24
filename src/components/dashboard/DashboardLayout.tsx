@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -34,8 +33,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, signOut, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const { searchResults, loading } = useSearchCourses(searchTerm);
+  const [inputValue, setInputValue] = useState("");
+  const { searchResults, loading, handleSearch } = useSearchCourses();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -47,8 +46,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+  };
+
+  const handleSearchSubmit = () => {
+    handleSearch(inputValue);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
   };
 
   const handleSelectCourse = (courseId: string) => {
@@ -60,15 +69,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Search Dialog */}
       <CommandDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
-        <CommandInput 
-          placeholder="Search for courses..." 
-          value={searchTerm}
-          onValueChange={handleSearchChange}
-          autoFocus
-        />
+        <div className="flex items-center border-b px-3">
+          <CommandInput 
+            placeholder="Search for courses..." 
+            value={inputValue}
+            onValueChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleSearchSubmit}
+            className="ml-2"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
         <CommandList>
-          {searchTerm.trim() === "" ? (
-            <CommandEmpty>Start typing to see suggestions...</CommandEmpty>
+          {inputValue.trim() === "" ? (
+            <CommandEmpty>Type and press Enter to search...</CommandEmpty>
           ) : loading ? (
             <div className="flex items-center justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-edu-blue"></div>
@@ -76,7 +96,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           ) : (
             <>
               {searchResults.length === 0 ? (
-                <CommandEmpty>No courses found matching "{searchTerm}"</CommandEmpty>
+                <CommandEmpty>No courses found matching "{inputValue}"</CommandEmpty>
               ) : (
                 <CommandGroup heading={`${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} found`}>
                   {searchResults.map((course) => (
