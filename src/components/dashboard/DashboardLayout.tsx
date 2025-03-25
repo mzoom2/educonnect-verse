@@ -35,6 +35,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  // Get username from user object safely
+  const username = user?.username || 'User';
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navbar */}
@@ -119,19 +122,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full overflow-hidden border border-border/50 w-10 h-10 flex items-center justify-center bg-primary/5 hover:bg-secondary transition-colors">
-                  {user?.user_metadata?.avatar_url ? (
-                    <img 
-                      src={user.user_metadata.avatar_url} 
-                      alt="User avatar" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User size={20} />
-                  )}
+                  <User size={20} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.user_metadata?.username || 'User'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{username}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Link to="/profile" className="w-full flex items-center">
