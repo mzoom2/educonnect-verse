@@ -26,6 +26,12 @@ This is the Flask-based backend for the Skillversity learning platform.
 
 The server will start on http://localhost:5000
 
+## Database
+
+The application uses SQLite by default. The database file will be created automatically when you first run the application.
+
+To seed the database with sample data, make a POST request to `/api/seed` with the server running in development mode.
+
 ## API Endpoints
 
 ### Authentication

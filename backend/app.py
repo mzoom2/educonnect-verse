@@ -387,12 +387,10 @@ def seed_data():
     
     return jsonify({'message': 'Database seeded successfully'}), 200
 
-# Initialize database and create tables
-@app.before_first_request
-def create_tables():
+# Replace the deprecated before_first_request with a different approach
+with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, host='0.0.0.0', port=5000)
+
