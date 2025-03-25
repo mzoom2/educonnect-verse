@@ -203,6 +203,14 @@ def login_user():
         'user': user.to_dict()
     }), 200
 
+# Add current user endpoint
+@app.route('/api/auth/current-user', methods=['GET'])
+@token_required
+def get_current_user(current_user):
+    return jsonify({
+        'user': current_user.to_dict()
+    }), 200
+
 # Routes for courses
 @app.route('/api/courses', methods=['GET'])
 def get_all_courses():

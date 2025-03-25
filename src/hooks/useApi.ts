@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
+import { useNavigate } from 'react-router-dom';
 
 type ApiRequestState<T> = {
   data: T | null;
@@ -19,6 +20,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
     error: null,
   });
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchData = useCallback(async (newBody?: unknown) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -68,6 +70,12 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
         error: errorMessage,
       });
       
+      // Handle authentication errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        // Redirect to login page if unauthorized
+        navigate('/login');
+      }
+      
       if (showErrorToast) {
         toast({
           title: "API Error",
@@ -78,7 +86,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
       
       return { data: null, error: errorMessage };
     }
-  }, [url, method, body, toast, showErrorToast]);
+  }, [url, method, body, toast, showErrorToast, navigate]);
 
   useEffect(() => {
     if (immediate) {

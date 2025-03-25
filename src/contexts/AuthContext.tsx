@@ -1,16 +1,21 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { localAuth, User, AuthSession } from '@/lib/localAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/api';
 
-// Define the specific admin email
-const ADMIN_EMAIL = "mzoomolabewa@gmail.com";
+// Define types for user data
+type UserData = {
+  id: number;
+  email: string;
+  username: string;
+  role: string;
+  created_at: string;
+  last_login: string | null;
+};
 
 type AuthContextType = {
-  session: AuthSession | null;
-  user: User | null;
+  user: UserData | null;
   loading: boolean;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{
@@ -21,64 +26,79 @@ type AuthContextType = {
     data: any;
   }>;
   signOut: () => Promise<void>;
-  updateUserMetadata: (userId: string, metadata: Partial<User['user_metadata']>) => Promise<User | null>;
+  refreshUserData: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Function to refresh user data from the backend
+  const refreshUserData = async () => {
+    if (!authService.isAuthenticated()) {
+      setUser(null);
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await authService.getCurrentUser();
+      
+      if (error || !data) {
+        console.error("Failed to fetch user data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load user data",
+          variant: "destructive"
+        });
+        setUser(null);
+        setIsAdmin(false);
+        return;
+      }
+      
+      setUser(data.user);
+      setIsAdmin(data.user.role === 'admin');
+    } catch (err) {
+      console.error("Error refreshing user data:", err);
+      setUser(null);
+      setIsAdmin(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Function to check if the user is authenticated with the backend
   const verifyAuthentication = async () => {
     try {
       setLoading(true);
       
-      // First check if we have a session
-      const { data: { session } } = localAuth.getSession();
-      
-      if (session) {
-        // If we have a session, also verify the backend token if it exists
-        if (authService.isAuthenticated()) {
-          const { valid } = await authService.verifyToken();
-          
-          if (!valid) {
-            console.log("Backend token invalid, logging out");
-            await localAuth.signOut();
-            authService.logout();
-            setSession(null);
-            setUser(null);
-            setIsAdmin(false);
-            
-            toast({
-              title: "Authentication expired",
-              description: "Please log in again",
-              variant: "destructive"
-            });
-            
-            navigate('/login');
-            return;
-          }
-        }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Check if user has the admin email
-        if (session?.user?.email === ADMIN_EMAIL) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } else {
-        setSession(null);
+      if (!authService.isAuthenticated()) {
         setUser(null);
         setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+      
+      // Verify token with backend
+      const { valid, data } = await authService.verifyToken();
+      
+      if (!valid) {
+        console.log("Token invalid, logging out");
+        await signOut();
+        return;
+      }
+      
+      // Set user data from the verification response
+      if (data && data.user) {
+        setUser(data.user);
+        setIsAdmin(data.user.role === 'admin');
       }
     } catch (error) {
       console.error("Authentication verification error:", error);
@@ -87,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Could not verify your authentication status",
         variant: "destructive"
       });
+      setUser(null);
+      setIsAdmin(false);
     } finally {
       setLoading(false);
     }
@@ -96,30 +118,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initial authentication check
     verifyAuthentication();
     
-    // Listen for auth changes
-    const { data: { subscription } } = localAuth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Check if user has the admin email
-      if (session?.user?.email === ADMIN_EMAIL) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
+    // Set up an interval to periodically check authentication
+    const interval = setInterval(() => {
+      if (authService.isAuthenticated()) {
+        verifyAuthentication();
       }
-      
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }, 30 * 60 * 1000); // Check every 30 minutes
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
-      const { error, data } = await localAuth.signInWithPassword({ email, password });
+      const { error, data } = await authService.login(email, password);
       
-      if (!error) {
+      if (!error && data) {
+        setUser(data.user);
+        setIsAdmin(data.user.role === 'admin');
+        
         navigate('/dashboard');
         toast({
           title: "Login successful",
@@ -128,12 +145,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         toast({
           title: "Login failed",
-          description: error.message,
+          description: error || "Unknown error occurred",
           variant: "destructive"
         });
       }
       
-      return { error: error ? new Error(error.message) : null };
+      return { error: error ? new Error(error) : null };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error occurred');
       toast({
@@ -148,19 +165,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign up with email and password
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      const { error, data } = await localAuth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: { 
-            username 
-          }
-        }
-      });
+      const { error, data } = await authService.register(email, password, username);
       
       if (error) {
         // Handle specific error cases
-        if (error.message.includes("already exists")) {
+        if (error.includes("already exists")) {
           toast({
             title: "Registration failed",
             description: "An account with this email already exists.",
@@ -169,14 +178,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           toast({
             title: "Registration failed",
-            description: error.message,
+            description: error,
             variant: "destructive"
           });
         }
-        return { error: new Error(error.message), data: null };
+        return { error: new Error(error), data: null };
       }
       
-      if (data?.user) {
+      if (data) {
+        // Auto login after successful registration
+        await signIn(email, password);
+        
         toast({
           title: "Registration successful",
           description: "Your account has been created",
@@ -198,7 +210,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out
   const signOut = async () => {
-    await localAuth.signOut();
+    authService.logout();
+    setUser(null);
+    setIsAdmin(false);
     navigate('/login');
     toast({
       title: "Logged out",
@@ -206,39 +220,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Update user metadata
-  const updateUserMetadata = async (userId: string, metadata: Partial<User['user_metadata']>) => {
-    try {
-      const updatedUser = localAuth.updateUserMetadata(userId, metadata);
-      
-      if (updatedUser) {
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully",
-        });
-      }
-      
-      return updatedUser;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error occurred');
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      return null;
-    }
-  };
-
   const value = {
-    session,
     user,
     loading,
     isAdmin,
     signIn,
     signUp,
     signOut,
-    updateUserMetadata
+    refreshUserData
   };
 
   return (

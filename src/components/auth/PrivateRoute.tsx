@@ -1,9 +1,15 @@
 
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 export const PrivateRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUserData } = useAuth();
+  
+  useEffect(() => {
+    // Verify user data on route access
+    refreshUserData();
+  }, [refreshUserData]);
   
   if (loading) {
     return (

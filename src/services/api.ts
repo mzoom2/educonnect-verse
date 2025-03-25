@@ -50,7 +50,6 @@ api.interceptors.response.use(
       console.log('Authentication error - clearing stored data');
       // Clear stored authentication data
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       
       // You might want to redirect to login page here
       // window.location.href = '/login';
@@ -80,19 +79,9 @@ export const authService = {
       const response = await api.post('/auth/login', { email, password });
       console.log('Login response:', response.data);
       
-      // Store the token in localStorage
+      // Store ONLY the token in localStorage
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        // Make sure user data is properly structured before storing
-        if (response.data.user) {
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-        } else {
-          console.error('No user data in login response');
-          return { 
-            data: null, 
-            error: 'Invalid user data in response' 
-          };
-        }
       } else {
         console.error('No token in login response');
         return { 
@@ -113,36 +102,23 @@ export const authService = {
   
   logout: () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
   },
   
-  getCurrentUser: () => {
+  getCurrentUser: async () => {
     try {
-      const userStr = localStorage.getItem('user');
-      if (!userStr) return null;
-      
-      const user = JSON.parse(userStr);
-      return user;
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      // If there's an error parsing the user data, clear it
-      localStorage.removeItem('user');
-      return null;
+      const response = await api.get('/auth/current-user');
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Error fetching current user:', error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch user data' 
+      };
     }
   },
   
   isAuthenticated: () => {
     return !!localStorage.getItem('token');
-  },
-  
-  isAdmin: () => {
-    try {
-      const user = authService.getCurrentUser();
-      return user?.role === 'admin';
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      return false;
-    }
   },
   
   // Add a method to verify token validity with the backend
@@ -156,9 +132,8 @@ export const authService = {
       return { valid: true, data: response.data };
     } catch (error) {
       console.error('Token verification error:', error);
-      // If verification fails, clear stored data
+      // If verification fails, clear stored token
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       return { valid: false };
     }
   }
