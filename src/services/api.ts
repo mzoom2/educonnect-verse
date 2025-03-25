@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -35,6 +34,16 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Response error:', error);
+    
+    // Enhanced error logging
+    if (error.response) {
+      console.error('Response error status:', error.response.status);
+      console.error('Response error data:', error.response.data);
+    } else if (error.request) {
+      console.error('Request error (no response received):', error.request);
+    } else {
+      console.error('Error setting up request:', error.message);
+    }
     
     // Handle token expiration or invalid token
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
@@ -238,6 +247,35 @@ export const courseService = {
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to delete course' 
+      };
+    }
+  }
+};
+
+// Add a dedicated admin service for admin-specific API calls
+export const adminService = {
+  getDashboardData: async () => {
+    try {
+      const response = await api.get('/admin/dashboard');
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Failed to fetch admin dashboard data:', error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch admin dashboard data' 
+      };
+    }
+  },
+  
+  getAllUsers: async () => {
+    try {
+      const response = await api.get('/admin/users');
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Failed to fetch users data:', error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch users data' 
       };
     }
   }

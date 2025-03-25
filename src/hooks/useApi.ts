@@ -12,7 +12,7 @@ type ApiRequestState<T> = {
 type ApiMethod = 'get' | 'post' | 'put' | 'delete';
 
 // Generic hook for API calls
-export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown, immediate = true) {
+export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown, immediate = true, showErrorToast = true) {
   const [state, setState] = useState<ApiRequestState<T>>({
     data: null,
     isLoading: immediate,
@@ -26,6 +26,8 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
     try {
       const requestBody = newBody || body;
       let response;
+      
+      console.log(`Making ${method.toUpperCase()} request to ${url}`);
       
       switch (method) {
         case 'get':
@@ -44,6 +46,8 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
           throw new Error(`Unsupported API method: ${method}`);
       }
       
+      console.log(`Response received from ${url}:`, response.data);
+      
       setState({
         data: response.data,
         isLoading: false,
@@ -52,7 +56,11 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
       
       return { data: response.data, error: null };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'An error occurred';
+      console.error(`Error during ${method.toUpperCase()} request to ${url}:`, error);
+      
+      const errorMessage = error.response?.data?.message || 
+                           error.message || 
+                           'An error occurred';
       
       setState({
         data: null,
@@ -60,15 +68,17 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
         error: errorMessage,
       });
       
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      if (showErrorToast) {
+        toast({
+          title: "API Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
       
       return { data: null, error: errorMessage };
     }
-  }, [url, method, body, toast]);
+  }, [url, method, body, toast, showErrorToast]);
 
   useEffect(() => {
     if (immediate) {
@@ -94,6 +104,15 @@ export function useCoursesByCategory(category: string, immediate = true) {
 
 export function useCourseDetails(id: string, immediate = true) {
   return useApi(`/courses/${id}`, 'get', undefined, immediate);
+}
+
+// Admin specific hooks
+export function useAdminDashboard(immediate = true) {
+  return useApi('/admin/dashboard', 'get', undefined, immediate);
+}
+
+export function useAdminUsers(immediate = true) {
+  return useApi('/admin/users', 'get', undefined, immediate);
 }
 
 export function useCreateCourse() {

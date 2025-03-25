@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +57,7 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect if not admin
@@ -73,15 +73,19 @@ const AdminPanel = () => {
 
   const fetchDashboardData = async () => {
     setIsRefreshing(true);
+    setLoadError(null);
     try {
+      console.log("Fetching dashboard data...");
       const response = await api.get('/admin/dashboard');
+      console.log("Dashboard data received:", response.data);
       setDashboardData(response.data);
-      console.log("Dashboard data:", response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching admin dashboard data:', error);
+      const errorMessage = error.response?.data?.message || "Could not load admin dashboard data.";
+      setLoadError(errorMessage);
       toast({
         title: "Error loading data",
-        description: "Could not load admin dashboard data.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -90,28 +94,38 @@ const AdminPanel = () => {
   };
 
   const fetchUsers = async () => {
+    setLoadError(null);
     try {
+      console.log("Fetching users data...");
       const response = await api.get('/admin/users');
+      console.log("Users data received:", response.data);
       setUsers(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
+      const errorMessage = error.response?.data?.message || "Could not load user data.";
+      setLoadError(errorMessage);
       toast({
         title: "Error loading users",
-        description: "Could not load user data.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
 
   const fetchCourses = async () => {
+    setLoadError(null);
     try {
+      console.log("Fetching courses data...");
       const response = await api.get('/courses');
+      console.log("Courses data received:", response.data);
       setCourses(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching courses:', error);
+      const errorMessage = error.response?.data?.message || "Could not load course data.";
+      setLoadError(errorMessage);
       toast({
         title: "Error loading courses",
-        description: "Could not load course data.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -120,39 +134,54 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
+      setLoadError(null);
       try {
-        await Promise.all([
-          fetchDashboardData(),
-          fetchUsers(),
-          fetchCourses()
-        ]);
-      } catch (error) {
+        // Verify admin access before continuing
+        if (isAdmin) {
+          console.log("Fetching all admin data...");
+          await fetchDashboardData();
+          await fetchUsers();
+          await fetchCourses();
+          console.log("All admin data fetched successfully");
+        }
+      } catch (error: any) {
         console.error('Error fetching data:', error);
+        const errorMessage = error.response?.data?.message || "Could not load admin data.";
+        setLoadError(errorMessage);
+        toast({
+          title: "Error fetching data",
+          description: errorMessage,
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchAllData();
-    
-    // Set up interval to refresh data every 60 seconds
-    const interval = setInterval(() => {
-      if (activeTab === 'overview') {
-        fetchDashboardData();
-      }
-    }, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    if (isAdmin) {
+      fetchAllData();
+      
+      // Set up interval to refresh data every 60 seconds
+      const interval = setInterval(() => {
+        if (activeTab === 'overview') {
+          fetchDashboardData();
+        }
+      }, 60000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     // Fetch tab-specific data when tab changes
-    if (activeTab === 'users') {
-      fetchUsers();
-    } else if (activeTab === 'courses') {
-      fetchCourses();
+    if (isAdmin) {
+      if (activeTab === 'users') {
+        fetchUsers();
+      } else if (activeTab === 'courses') {
+        fetchCourses();
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, isAdmin]);
 
   const handleRefreshData = () => {
     if (activeTab === 'overview') {
@@ -189,6 +218,27 @@ const AdminPanel = () => {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-edu-blue"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show error state if there's an error
+  if (loadError) {
+    return (
+      <DashboardLayout>
+        <div className="py-6 container mx-auto px-4">
+          <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
+            <h2 className="text-2xl font-bold text-destructive mb-4">Error Loading Admin Data</h2>
+            <p className="mb-4">{loadError}</p>
+            <Button 
+              onClick={handleRefreshData} 
+              variant="outline" 
+              className="border-destructive text-destructive hover:bg-destructive/10"
+            >
+              <RefreshCcw size={16} className="mr-2" /> Try Again
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );
