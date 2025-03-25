@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NavItemWithOnClick from './NavItemWithOnClick';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { authService } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface NavItemProps {
   href: string;
@@ -31,17 +34,34 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   const toggleMenu = () => setIsOpen(!isOpen);
   
   const closeMenu = () => {
     setIsOpen(false);
   };
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsLoggedIn(false);
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out"
+    });
+    navigate('/');
+    closeMenu();
+  };
   
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
+    
+    // Check if user is logged in
+    setIsLoggedIn(authService.isAuthenticated());
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -76,12 +96,25 @@ export const Navbar = () => {
         
         <div className="hidden md:flex items-center space-x-4">
           <ThemeToggle />
-          <a href="/login" className="nav-link">
-            Login
-          </a>
-          <a href="/register" className="btn-primary">
-            Sign Up
-          </a>
+          {isLoggedIn ? (
+            <>
+              <a href="/dashboard" className="nav-link">
+                Dashboard
+              </a>
+              <button onClick={handleLogout} className="btn-secondary">
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <a href="/login" className="nav-link">
+                Login
+              </a>
+              <a href="/register" className="btn-primary">
+                Sign Up
+              </a>
+            </>
+          )}
         </div>
         
         {/* Mobile Menu */}
@@ -115,12 +148,25 @@ export const Navbar = () => {
                   </ul>
                   
                   <div className="flex flex-col space-y-4">
-                    <a href="/login" className="btn-secondary w-full text-center" onClick={closeMenu}>
-                      Login
-                    </a>
-                    <a href="/register" className="btn-primary w-full text-center" onClick={closeMenu}>
-                      Sign Up
-                    </a>
+                    {isLoggedIn ? (
+                      <>
+                        <a href="/dashboard" className="btn-secondary w-full text-center" onClick={closeMenu}>
+                          Dashboard
+                        </a>
+                        <button onClick={handleLogout} className="btn-primary w-full text-center">
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <a href="/login" className="btn-secondary w-full text-center" onClick={closeMenu}>
+                          Login
+                        </a>
+                        <a href="/register" className="btn-primary w-full text-center" onClick={closeMenu}>
+                          Sign Up
+                        </a>
+                      </>
+                    )}
                   </div>
                 </nav>
               </SheetContent>
