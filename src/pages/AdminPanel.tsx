@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { localAuth, User } from '@/lib/localAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,21 +10,54 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isToday } from 'date-fns';
 import { 
   Users, LogIn, GraduationCap, BookOpen, ChartLine, 
-  CalendarDays, Clock, Settings, Filter 
+  CalendarDays, Clock, Settings, Filter, Edit, Trash, 
+  RefreshCcw, TrendingUp, BarChart3, Eye, Download
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import api from '@/services/api';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+
+interface AdminDashboardData {
+  stats: {
+    total_users: number;
+    new_users_today: number;
+    today_logins: number;
+    total_courses: number;
+    total_enrollments: number;
+    avg_courses_per_user: number;
+  };
+  categories: { name: string; count: number }[];
+  most_viewed_courses: any[];
+  recent_activities: {
+    id: number;
+    username: string;
+    email: string;
+    action_type: string;
+    details: string;
+    created_at: string;
+  }[];
+}
+
+interface User {
+  id: number;
+  email: string;
+  username: string;
+  role: string;
+  created_at: string;
+  last_login: string | null;
+}
 
 const AdminPanel = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
-
-  // Stats
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [todayLogins, setTodayLogins] = useState(0);
-  const [newUsersToday, setNewUsersToday] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Redirect if not admin
@@ -39,46 +71,118 @@ const AdminPanel = () => {
     }
   }, [isAdmin, isLoading, navigate, toast]);
 
+  const fetchDashboardData = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await api.get('/admin/dashboard');
+      setDashboardData(response.data);
+      console.log("Dashboard data:", response.data);
+    } catch (error) {
+      console.error('Error fetching admin dashboard data:', error);
+      toast({
+        title: "Error loading data",
+        description: "Could not load admin dashboard data.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get('/admin/users');
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Error loading users",
+        description: "Could not load user data.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await api.get('/courses');
+      setCourses(response.data);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      toast({
+        title: "Error loading courses",
+        description: "Could not load course data.",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
-    const fetchData = () => {
+    const fetchAllData = async () => {
+      setIsLoading(true);
       try {
-        // Get all users
-        const allUsers = localAuth.getAllUsers();
-        setUsers(allUsers);
-        setTotalUsers(allUsers.length);
-        
-        // Calculate today's logins
-        const todayLoginCount = allUsers.filter(user => 
-          user.user_metadata.last_login && 
-          isToday(parseISO(user.user_metadata.last_login))
-        ).length;
-        setTodayLogins(todayLoginCount);
-        
-        // Calculate new users today
-        const todayNewUsers = allUsers.filter(user => 
-          isToday(parseISO(user.created_at))
-        ).length;
-        setNewUsersToday(todayNewUsers);
-        
+        await Promise.all([
+          fetchDashboardData(),
+          fetchUsers(),
+          fetchCourses()
+        ]);
       } catch (error) {
-        console.error('Error fetching admin data:', error);
-        toast({
-          title: "Error loading data",
-          description: "Could not load admin dashboard data.",
-          variant: "destructive"
-        });
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
+    fetchAllData();
     
-    // Set up interval to refresh data every minute
-    const interval = setInterval(fetchData, 60000);
+    // Set up interval to refresh data every 60 seconds
+    const interval = setInterval(() => {
+      if (activeTab === 'overview') {
+        fetchDashboardData();
+      }
+    }, 60000);
     
     return () => clearInterval(interval);
-  }, [toast]);
+  }, []);
+
+  useEffect(() => {
+    // Fetch tab-specific data when tab changes
+    if (activeTab === 'users') {
+      fetchUsers();
+    } else if (activeTab === 'courses') {
+      fetchCourses();
+    }
+  }, [activeTab]);
+
+  const handleRefreshData = () => {
+    if (activeTab === 'overview') {
+      fetchDashboardData();
+    } else if (activeTab === 'users') {
+      fetchUsers();
+    } else if (activeTab === 'courses') {
+      fetchCourses();
+    }
+  };
+
+  // Format activity type for display
+  const formatActivityType = (type: string) => {
+    switch (type) {
+      case 'login':
+        return <Badge className="bg-green-500">Login</Badge>;
+      case 'registration':
+        return <Badge className="bg-blue-500">Registration</Badge>;
+      case 'course_view':
+        return <Badge className="bg-purple-500">Course View</Badge>;
+      case 'course_create':
+        return <Badge className="bg-yellow-500">Course Created</Badge>;
+      case 'course_update':
+        return <Badge className="bg-orange-500">Course Updated</Badge>;
+      case 'course_delete':
+        return <Badge className="bg-red-500">Course Deleted</Badge>;
+      default:
+        return <Badge>{type}</Badge>;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -95,9 +199,15 @@ const AdminPanel = () => {
       <div className="py-6">
         <div className="container mx-auto px-4">
           {/* Admin Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage your platform and view analytics</p>
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <p className="text-muted-foreground">Manage your platform and view analytics</p>
+            </div>
+            <Button onClick={handleRefreshData} className="flex items-center gap-2" disabled={isRefreshing}>
+              <RefreshCcw size={16} className={isRefreshing ? "animate-spin" : ""} />
+              {isRefreshing ? "Refreshing..." : "Refresh Data"}
+            </Button>
           </div>
 
           {/* Admin Tabs */}
@@ -119,9 +229,9 @@ const AdminPanel = () => {
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{totalUsers}</div>
+                    <div className="text-2xl font-bold">{dashboardData?.stats.total_users || 0}</div>
                     <p className="text-xs text-muted-foreground">
-                      +{newUsersToday} today
+                      +{dashboardData?.stats.new_users_today || 0} today
                     </p>
                   </CardContent>
                 </Card>
@@ -133,9 +243,11 @@ const AdminPanel = () => {
                     <LogIn className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{todayLogins}</div>
+                    <div className="text-2xl font-bold">{dashboardData?.stats.today_logins || 0}</div>
                     <p className="text-xs text-muted-foreground">
-                      {(todayLogins / totalUsers * 100).toFixed(1)}% of users active today
+                      {dashboardData?.stats.total_users 
+                        ? ((dashboardData.stats.today_logins / dashboardData.stats.total_users) * 100).toFixed(1) 
+                        : 0}% of users active today
                     </p>
                   </CardContent>
                 </Card>
@@ -147,9 +259,9 @@ const AdminPanel = () => {
                     <BookOpen className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">24</div>
+                    <div className="text-2xl font-bold">{dashboardData?.stats.total_courses || 0}</div>
                     <p className="text-xs text-muted-foreground">
-                      Across 8 categories
+                      Across {dashboardData?.categories?.length || 0} categories
                     </p>
                   </CardContent>
                 </Card>
@@ -161,16 +273,75 @@ const AdminPanel = () => {
                     <GraduationCap className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">56</div>
+                    <div className="text-2xl font-bold">{dashboardData?.stats.total_enrollments || 0}</div>
                     <p className="text-xs text-muted-foreground">
-                      2.3 courses per student
+                      {dashboardData?.stats.avg_courses_per_user || 0} courses per student
                     </p>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Categories Distribution */}
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                {/* Most Viewed Courses */}
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Top Performing Courses</CardTitle>
+                    <CardDescription>Courses with the highest view counts</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {dashboardData?.most_viewed_courses?.map((course, i) => (
+                        <div key={i} className="flex items-center space-x-2">
+                          <span className="font-medium text-muted-foreground">{i + 1}.</span>
+                          <div className="flex-1">
+                            <p className="font-medium truncate">{course.title}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs flex items-center gap-1">
+                                <Eye size={12} /> {course.viewCount}
+                              </span>
+                              <span className="text-xs flex items-center gap-1">
+                                <GraduationCap size={12} /> {course.enrollmentCount}
+                              </span>
+                              <span className="text-xs flex items-center gap-1">
+                                <TrendingUp size={12} /> {course.popularityScore}
+                              </span>
+                            </div>
+                          </div>
+                          <Progress value={course.popularityScore} className="w-[60px]" />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Category Distribution */}
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Category Distribution</CardTitle>
+                    <CardDescription>Courses by category</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {dashboardData?.categories?.map((category, i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">{category.name}</span>
+                            <span className="text-sm text-muted-foreground">{category.count} courses</span>
+                          </div>
+                          <Progress 
+                            value={(category.count / (dashboardData?.stats.total_courses || 1)) * 100} 
+                            className="h-2" 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Recent Activity */}
-              <Card className="col-span-4">
+              <Card className="col-span-1 md:col-span-4">
                 <CardHeader>
                   <CardTitle>Recent Activity</CardTitle>
                   <CardDescription>
@@ -183,28 +354,26 @@ const AdminPanel = () => {
                       <TableRow>
                         <TableHead>User</TableHead>
                         <TableHead>Activity</TableHead>
+                        <TableHead>Details</TableHead>
                         <TableHead>Date</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.filter(user => user.user_metadata.last_login)
-                        .sort((a, b) => {
-                          const dateA = a.user_metadata.last_login ? new Date(a.user_metadata.last_login).getTime() : 0;
-                          const dateB = b.user_metadata.last_login ? new Date(b.user_metadata.last_login).getTime() : 0;
-                          return dateB - dateA;
-                        })
-                        .slice(0, 5)
-                        .map((user, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{user.user_metadata.username}</TableCell>
-                            <TableCell>Logged in</TableCell>
-                            <TableCell>
-                              {user.user_metadata.last_login ? 
-                                format(new Date(user.user_metadata.last_login), 'MMM dd, yyyy HH:mm') : 
-                                'N/A'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {dashboardData?.recent_activities?.map((activity, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{activity.username || activity.email}</TableCell>
+                          <TableCell>{formatActivityType(activity.action_type)}</TableCell>
+                          <TableCell className="max-w-[300px] truncate">{activity.details}</TableCell>
+                          <TableCell>
+                            {format(parseISO(activity.created_at), 'MMM dd, yyyy HH:mm')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {(!dashboardData?.recent_activities || dashboardData.recent_activities.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4">No recent activities found</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -229,46 +398,166 @@ const AdminPanel = () => {
                         <TableHead>Role</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead>Last Login</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.map((user, index) => (
                         <TableRow key={index}>
-                          <TableCell className="font-medium">{user.user_metadata.username}</TableCell>
+                          <TableCell className="font-medium">{user.username || 'No username'}</TableCell>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.user_metadata.role || 'student'}</TableCell>
-                          <TableCell>{format(new Date(user.created_at), 'MMM dd, yyyy')}</TableCell>
                           <TableCell>
-                            {user.user_metadata.last_login ? 
-                              format(new Date(user.user_metadata.last_login), 'MMM dd, yyyy HH:mm') : 
+                            <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
+                              {user.role || 'student'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{format(parseISO(user.created_at), 'MMM dd, yyyy')}</TableCell>
+                          <TableCell>
+                            {user.last_login ? 
+                              format(parseISO(user.last_login), 'MMM dd, yyyy HH:mm') : 
                               'Never'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Edit size={16} />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Trash size={16} className="text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
+                      {users.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-4">No users found</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
               </Card>
+
+              {/* User Metrics */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Registration Timeline</CardTitle>
+                    <CardDescription>New user registrations over time</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[300px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <BarChart3 size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Registration timeline chart will be displayed here</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Activity Metrics</CardTitle>
+                    <CardDescription>Login frequency and engagement</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[300px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <ChartLine size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>User activity metrics chart will be displayed here</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Courses Tab */}
             <TabsContent value="courses" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Course Management</CardTitle>
-                  <CardDescription>
-                    Manage all courses on the platform
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Course Management</CardTitle>
+                    <CardDescription>
+                      Manage all courses on the platform
+                    </CardDescription>
+                  </div>
+                  <Button className="flex items-center gap-2">
+                    <GraduationCap size={16} />
+                    Add New Course
+                  </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <h3 className="text-lg font-medium mb-2">Course Data</h3>
-                    <p className="text-muted-foreground">
-                      This is a mockup. In a real app, this would display actual course data.
-                    </p>
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Author</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Views</TableHead>
+                        <TableHead>Enrollments</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {courses.map((course, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium max-w-[200px] truncate">{course.title}</TableCell>
+                          <TableCell>{course.author}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{course.category}</Badge>
+                          </TableCell>
+                          <TableCell>{course.price}</TableCell>
+                          <TableCell>{course.viewCount}</TableCell>
+                          <TableCell>{course.enrollmentCount}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Edit size={16} />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Trash size={16} className="text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {courses.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4">No courses found</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
+
+              {/* Course Performance Metrics */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Category Distribution</CardTitle>
+                    <CardDescription>Courses by category</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[300px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <BarChart3 size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Category distribution chart will be displayed here</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Course Engagement</CardTitle>
+                    <CardDescription>Views and enrollments over time</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[300px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <ChartLine size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Course engagement metrics chart will be displayed here</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Settings Tab */}
@@ -281,11 +570,69 @@ const AdminPanel = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <h3 className="text-lg font-medium mb-2">Settings Panel</h3>
-                    <p className="text-muted-foreground">
-                      This is a mockup. In a real app, this would display actual settings.
-                    </p>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">General Settings</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b pb-4">
+                          <div>
+                            <p className="font-medium">Platform Name</p>
+                            <p className="text-sm text-muted-foreground">Change the name of your platform</p>
+                          </div>
+                          <div>
+                            <Button variant="outline">Edit</Button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center border-b pb-4">
+                          <div>
+                            <p className="font-medium">Platform Logo</p>
+                            <p className="text-sm text-muted-foreground">Update your platform's logo</p>
+                          </div>
+                          <div>
+                            <Button variant="outline">Upload</Button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center border-b pb-4">
+                          <div>
+                            <p className="font-medium">Maintenance Mode</p>
+                            <p className="text-sm text-muted-foreground">Put your platform in maintenance mode</p>
+                          </div>
+                          <div>
+                            <Button variant="outline" className="bg-destructive/10 text-destructive hover:bg-destructive/20">Enable</Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Data Management</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b pb-4">
+                          <div>
+                            <p className="font-medium">Database Backup</p>
+                            <p className="text-sm text-muted-foreground">Download a backup of your database</p>
+                          </div>
+                          <div>
+                            <Button variant="outline" className="flex items-center gap-2">
+                              <Download size={16} />
+                              Backup
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center border-b pb-4">
+                          <div>
+                            <p className="font-medium">Clear Cache</p>
+                            <p className="text-sm text-muted-foreground">Clear your platform's cache</p>
+                          </div>
+                          <div>
+                            <Button variant="outline">Clear</Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

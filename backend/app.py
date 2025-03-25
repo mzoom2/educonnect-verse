@@ -44,6 +44,7 @@ class User(db.Model):
     username = db.Column(db.String(100))
     role = db.Column(db.String(20), default='user')  # 'user' or 'admin'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
     
     def to_dict(self):
         return {
@@ -51,7 +52,8 @@ class User(db.Model):
             'email': self.email,
             'username': self.username,
             'role': self.role,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'last_login': self.last_login.isoformat() if self.last_login else None
         }
 
 # Define Course model
@@ -85,6 +87,23 @@ class Course(db.Model):
             'viewCount': self.view_count,
             'enrollmentCount': self.enrollment_count,
             'popularityScore': self.popularity_score
+        }
+
+# Define activity log model for tracking user activities
+class ActivityLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    action_type = db.Column(db.String(50), nullable=False)  # e.g., 'login', 'course_view', 'enrollment'
+    details = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'action_type': self.action_type,
+            'details': self.details,
+            'created_at': self.created_at.isoformat()
         }
 
 # JWT token authentication
@@ -136,6 +155,15 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
     
+    # Log the activity
+    log_activity = ActivityLog(
+        user_id=new_user.id,
+        action_type='registration',
+        details=f"User {new_user.email} registered"
+    )
+    db.session.add(log_activity)
+    db.session.commit()
+    
     return jsonify({'message': 'User registered successfully'}), 201
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -149,6 +177,19 @@ def login_user():
     
     if not user or not check_password_hash(user.password, data['password']):
         return jsonify({'message': 'Invalid credentials'}), 401
+    
+    # Update last login time
+    user.last_login = datetime.utcnow()
+    db.session.commit()
+    
+    # Log the activity
+    log_activity = ActivityLog(
+        user_id=user.id,
+        action_type='login',
+        details=f"User {user.email} logged in"
+    )
+    db.session.add(log_activity)
+    db.session.commit()
     
     # Generate JWT token
     token = jwt.encode({
@@ -176,6 +217,25 @@ def get_course(course_id):
     # Increment view count
     course.view_count += 1
     db.session.commit()
+    
+    # Log the activity if user is logged in
+    if 'Authorization' in request.headers:
+        try:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+                data = jwt.decode(token, app.secret_key, algorithms=["HS256"])
+                current_user = User.query.get(data['user_id'])
+                
+                log_activity = ActivityLog(
+                    user_id=current_user.id,
+                    action_type='course_view',
+                    details=f"User viewed course: {course.title}"
+                )
+                db.session.add(log_activity)
+                db.session.commit()
+        except:
+            pass  # Silently ignore if token is invalid
     
     return jsonify(course.to_dict()), 200
 
@@ -230,6 +290,15 @@ def add_course(current_user):
     db.session.add(new_course)
     db.session.commit()
     
+    # Log the activity
+    log_activity = ActivityLog(
+        user_id=current_user.id,
+        action_type='course_create',
+        details=f"Admin created course: {new_course.title}"
+    )
+    db.session.add(log_activity)
+    db.session.commit()
+    
     return jsonify(new_course.to_dict()), 201
 
 @app.route('/api/admin/courses/<course_id>', methods=['PUT'])
@@ -264,6 +333,15 @@ def update_course(current_user, course_id):
     
     db.session.commit()
     
+    # Log the activity
+    log_activity = ActivityLog(
+        user_id=current_user.id,
+        action_type='course_update',
+        details=f"Admin updated course: {course.title}"
+    )
+    db.session.add(log_activity)
+    db.session.commit()
+    
     return jsonify(course.to_dict()), 200
 
 @app.route('/api/admin/courses/<course_id>', methods=['DELETE'])
@@ -276,10 +354,94 @@ def delete_course(current_user, course_id):
     if not course:
         return jsonify({'message': 'Course not found'}), 404
     
+    course_title = course.title
     db.session.delete(course)
     db.session.commit()
     
+    # Log the activity
+    log_activity = ActivityLog(
+        user_id=current_user.id,
+        action_type='course_delete',
+        details=f"Admin deleted course: {course_title}"
+    )
+    db.session.add(log_activity)
+    db.session.commit()
+    
     return jsonify({'message': 'Course deleted successfully'}), 200
+
+# Admin dashboard data endpoints
+@app.route('/api/admin/dashboard', methods=['GET'])
+@token_required
+def get_admin_dashboard(current_user):
+    if current_user.role != 'admin':
+        return jsonify({'message': 'Admin access required'}), 403
+    
+    # Get total users
+    total_users = User.query.count()
+    
+    # Get new users today
+    today = datetime.today().date()
+    new_users_today = User.query.filter(
+        db.func.date(User.created_at) == today
+    ).count()
+    
+    # Get today's logins
+    today_logins = User.query.filter(
+        db.func.date(User.last_login) == today
+    ).count()
+    
+    # Get total courses
+    total_courses = Course.query.count()
+    
+    # Get courses by category
+    categories = db.session.query(Course.category, db.func.count(Course.id)).group_by(Course.category).all()
+    categories_data = [{'name': cat, 'count': count} for cat, count in categories]
+    
+    # Get total enrollments
+    total_enrollments = db.session.query(db.func.sum(Course.enrollment_count)).scalar() or 0
+    
+    # Get most viewed courses
+    most_viewed_courses = Course.query.order_by(Course.view_count.desc()).limit(5).all()
+    
+    # Get recent activities
+    recent_activities = ActivityLog.query.order_by(ActivityLog.created_at.desc()).limit(10).all()
+    
+    # Format activities with user information
+    activities_with_user = []
+    for activity in recent_activities:
+        user = User.query.get(activity.user_id)
+        if user:
+            activities_with_user.append({
+                'id': activity.id,
+                'username': user.username,
+                'email': user.email,
+                'action_type': activity.action_type,
+                'details': activity.details,
+                'created_at': activity.created_at.isoformat()
+            })
+    
+    return jsonify({
+        'stats': {
+            'total_users': total_users,
+            'new_users_today': new_users_today,
+            'today_logins': today_logins,
+            'total_courses': total_courses,
+            'total_enrollments': total_enrollments,
+            'avg_courses_per_user': round(total_enrollments / total_users, 1) if total_users > 0 else 0
+        },
+        'categories': categories_data,
+        'most_viewed_courses': [course.to_dict() for course in most_viewed_courses],
+        'recent_activities': activities_with_user
+    }), 200
+
+@app.route('/api/admin/users', methods=['GET'])
+@token_required
+def get_all_users(current_user):
+    if current_user.role != 'admin':
+        return jsonify({'message': 'Admin access required'}), 403
+    
+    users = User.query.all()
+    return jsonify([user.to_dict() for user in users]), 200
 
 # Seed sample data
 @app.route('/api/seed', methods=['POST'])
@@ -393,4 +555,3 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
