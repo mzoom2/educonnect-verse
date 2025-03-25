@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -123,8 +122,10 @@ def token_required(f):
         try:
             data = jwt.decode(token, app.secret_key, algorithms=["HS256"])
             current_user = User.query.get(data['user_id'])
-        except:
-            return jsonify({'message': 'Token is invalid!'}), 401
+            if not current_user:
+                raise Exception("User not found")
+        except Exception as e:
+            return jsonify({'message': f'Token is invalid! {str(e)}'}), 401
         
         return f(current_user, *args, **kwargs)
     
@@ -442,6 +443,15 @@ def get_all_users(current_user):
     
     users = User.query.all()
     return jsonify([user.to_dict() for user in users]), 200
+
+# Add token verification endpoint
+@app.route('/api/auth/verify-token', methods=['GET'])
+@token_required
+def verify_token(current_user):
+    return jsonify({
+        'valid': True,
+        'user': current_user.to_dict()
+    }), 200
 
 # Seed sample data
 @app.route('/api/seed', methods=['POST'])

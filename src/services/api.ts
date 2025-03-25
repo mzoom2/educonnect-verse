@@ -9,6 +9,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Add timeout to prevent hanging requests
+  timeout: 10000,
 });
 
 // Add a request interceptor to include auth token in headers
@@ -21,6 +23,30 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor to handle common errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    console.error('API Response error:', error);
+    
+    // Handle token expiration or invalid token
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      console.log('Authentication error - clearing stored data');
+      // Clear stored authentication data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // You might want to redirect to login page here
+      // window.location.href = '/login';
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -32,6 +58,7 @@ export const authService = {
       const response = await api.post('/auth/register', { email, password, username });
       return { data: response.data, error: null };
     } catch (error: any) {
+      console.error('Registration error:', error);
       return { 
         data: null, 
         error: error.response?.data?.message || 'Registration failed' 
@@ -42,13 +69,32 @@ export const authService = {
   login: async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/login', { email, password });
+      console.log('Login response:', response.data);
+      
       // Store the token in localStorage
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Make sure user data is properly structured before storing
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+        } else {
+          console.error('No user data in login response');
+          return { 
+            data: null, 
+            error: 'Invalid user data in response' 
+          };
+        }
+      } else {
+        console.error('No token in login response');
+        return { 
+          data: null, 
+          error: 'No authentication token received' 
+        };
       }
+      
       return { data: response.data, error: null };
     } catch (error: any) {
+      console.error('Login error:', error);
       return { 
         data: null, 
         error: error.response?.data?.message || 'Login failed' 
@@ -62,8 +108,18 @@ export const authService = {
   },
   
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return null;
+      
+      const user = JSON.parse(userStr);
+      return user;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      // If there's an error parsing the user data, clear it
+      localStorage.removeItem('user');
+      return null;
+    }
   },
   
   isAuthenticated: () => {
@@ -71,8 +127,31 @@ export const authService = {
   },
   
   isAdmin: () => {
-    const user = authService.getCurrentUser();
-    return user?.role === 'admin';
+    try {
+      const user = authService.getCurrentUser();
+      return user?.role === 'admin';
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  },
+  
+  // Add a method to verify token validity with the backend
+  verifyToken: async () => {
+    try {
+      if (!localStorage.getItem('token')) {
+        return { valid: false };
+      }
+      
+      const response = await api.get('/auth/verify-token');
+      return { valid: true, data: response.data };
+    } catch (error) {
+      console.error('Token verification error:', error);
+      // If verification fails, clear stored data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return { valid: false };
+    }
   }
 };
 

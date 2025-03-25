@@ -1,7 +1,9 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { localAuth, User, AuthSession } from '@/lib/localAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { authService } from '@/services/api';
 
 // Define the specific admin email
 const ADMIN_EMAIL = "mzoomolabewa@gmail.com";
@@ -32,21 +34,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Check active sessions and set the user
-    const { data: { session } } = localAuth.getSession();
-    setSession(session);
-    setUser(session?.user ?? null);
-    
-    // Check if user has the admin email
-    if (session?.user?.email === ADMIN_EMAIL) {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
+  // Function to check if the user is authenticated with the backend
+  const verifyAuthentication = async () => {
+    try {
+      setLoading(true);
+      
+      // First check if we have a session
+      const { data: { session } } = localAuth.getSession();
+      
+      if (session) {
+        // If we have a session, also verify the backend token if it exists
+        if (authService.isAuthenticated()) {
+          const { valid } = await authService.verifyToken();
+          
+          if (!valid) {
+            console.log("Backend token invalid, logging out");
+            await localAuth.signOut();
+            authService.logout();
+            setSession(null);
+            setUser(null);
+            setIsAdmin(false);
+            
+            toast({
+              title: "Authentication expired",
+              description: "Please log in again",
+              variant: "destructive"
+            });
+            
+            navigate('/login');
+            return;
+          }
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Check if user has the admin email
+        if (session?.user?.email === ADMIN_EMAIL) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } else {
+        setSession(null);
+        setUser(null);
+        setIsAdmin(false);
+      }
+    } catch (error) {
+      console.error("Authentication verification error:", error);
+      toast({
+        title: "Authentication error",
+        description: "Could not verify your authentication status",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
+  };
 
+  useEffect(() => {
+    // Initial authentication check
+    verifyAuthentication();
+    
     // Listen for auth changes
     const { data: { subscription } } = localAuth.onAuthStateChange((_event, session) => {
       setSession(session);
