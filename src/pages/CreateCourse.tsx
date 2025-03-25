@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -590,7 +591,7 @@ const CreateCourse = () => {
                             </FormControl>
                             <FormDescription>
                               Number of daily lessons (1-30)
-                            </FormMessage>
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

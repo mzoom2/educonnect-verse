@@ -45,7 +45,7 @@ function App() {
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
-  )
+  );
 }
 
 export default App;
