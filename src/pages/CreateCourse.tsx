@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,15 +80,15 @@ const CreateCourse = () => {
   }>>([]);
   
   // Check if user is a teacher
-  const isTeacher = user?.user_metadata?.role === 'teacher';
+  const isTeacher = user?.role === 'teacher';
 
   // Check if user has enough balance for teacher registration
-  const userBalance = user?.user_metadata?.balance || 0;
+  const userBalance = user?.metadata?.balance || 0;
   const teacherRegistrationFee = 10000; // ₦10,000
   const hasEnoughBalance = userBalance >= teacherRegistrationFee;
   
   // Teacher application status
-  const teacherApplication = user?.user_metadata?.teacherApplication;
+  const teacherApplication = user?.metadata?.teacherApplication;
   const applicationStatus = teacherApplication?.status || null;
 
   // Setup form for course basic info
@@ -188,8 +187,11 @@ const CreateCourse = () => {
         const newBalance = userBalance - teacherRegistrationFee;
         
         await updateUserMetadata(user.id, { 
-          role: 'teacher',
-          balance: newBalance
+          metadata: {
+            ...user.metadata,
+            balance: newBalance
+          },
+          role: 'teacher'
         });
         
         toast({
@@ -588,7 +590,7 @@ const CreateCourse = () => {
                             </FormControl>
                             <FormDescription>
                               Number of daily lessons (1-30)
-                            </FormDescription>
+                            </FormMessage>
                             <FormMessage />
                           </FormItem>
                         )}

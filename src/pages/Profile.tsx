@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -35,14 +36,13 @@ const Profile = () => {
   const [showTeacherForm, setShowTeacherForm] = useState(false);
   
   // Get user's name or fallback
-  const userName = user?.user_metadata?.username || 
-                  (user?.email ? user.email.split('@')[0] : 'User');
+  const userName = user?.username || 'User';
   
   // User's balance (default to 0 if not set)
-  const userBalance = user?.user_metadata?.balance || 0;
+  const userBalance = user?.metadata?.balance || 0;
   
   // Check if user is already a teacher
-  const isTeacher = user?.user_metadata?.role === 'teacher';
+  const isTeacher = user?.role === 'teacher';
 
   // Setup form
   const form = useForm<z.infer<typeof teacherFormSchema>>({
@@ -70,12 +70,15 @@ const Profile = () => {
       // For now, we'll just update the user's metadata
       if (updateUserMetadata && user) {
         await updateUserMetadata(user.id, { 
-          teacherApplication: {
-            qualification: values.qualification,
-            experience: values.experience,
-            specialization: values.specialization,
-            status: 'pending',
-            submittedAt: new Date().toISOString()
+          metadata: {
+            ...user.metadata,
+            teacherApplication: {
+              qualification: values.qualification,
+              experience: values.experience,
+              specialization: values.specialization,
+              status: 'pending',
+              submittedAt: new Date().toISOString()
+            }
           }
         });
         
@@ -97,6 +100,10 @@ const Profile = () => {
     }
   };
 
+  // Get teacher application status if available
+  const teacherApplication = user?.metadata?.teacherApplication;
+  const applicationStatus = teacherApplication?.status || null;
+
   return (
     <DashboardLayout>
       <div className="container mx-auto py-8 px-4">
@@ -107,7 +114,7 @@ const Profile = () => {
           <Card className="md:col-span-1">
             <CardHeader className="flex flex-row items-center gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={user?.user_metadata?.avatar_url} alt={userName} />
+                <AvatarImage src="" alt={userName} />
                 <AvatarFallback className="text-lg bg-edu-blue text-white">{getInitials()}</AvatarFallback>
               </Avatar>
               <div>

@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -135,6 +136,20 @@ export const authService = {
       // If verification fails, clear stored token
       localStorage.removeItem('token');
       return { valid: false };
+    }
+  },
+  
+  // Add a method to update user metadata
+  updateUserMetadata: async (userId: number, metadata: any) => {
+    try {
+      const response = await api.put(`/auth/users/${userId}/metadata`, { metadata });
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Error updating user metadata:', error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to update user data' 
+      };
     }
   }
 };

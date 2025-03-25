@@ -12,6 +12,16 @@ type UserData = {
   role: string;
   created_at: string;
   last_login: string | null;
+  metadata?: {
+    balance?: number;
+    teacherApplication?: {
+      qualification: string;
+      experience: string;
+      specialization: string;
+      status: string;
+      submittedAt: string;
+    };
+  };
 };
 
 type AuthContextType = {
@@ -27,6 +37,7 @@ type AuthContextType = {
   }>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
+  updateUserMetadata: (userId: number, metadata: any) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,6 +80,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Error refreshing user data:", err);
       setUser(null);
       setIsAdmin(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to update user metadata
+  const updateUserMetadata = async (userId: number, metadata: any) => {
+    try {
+      setLoading(true);
+      const { data, error } = await authService.updateUserMetadata(userId, metadata);
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update user data",
+          variant: "destructive"
+        });
+        throw new Error(error);
+      }
+      
+      // Refresh user data to get the updated metadata
+      await refreshUserData();
+      
+      return data;
+    } catch (err) {
+      console.error("Error updating user metadata:", err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -241,7 +279,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
-    refreshUserData
+    refreshUserData,
+    updateUserMetadata
   };
 
   return (
