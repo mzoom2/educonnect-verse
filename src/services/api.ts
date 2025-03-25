@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -204,10 +203,10 @@ export const courseService = {
     }
   },
   
-  // Admin functions
+  // Course creation and management
   createCourse: async (courseData: any) => {
     try {
-      const response = await api.post('/admin/courses', courseData);
+      const response = await api.post('/courses', courseData);
       return { data: response.data, error: null };
     } catch (error: any) {
       return { 
@@ -219,7 +218,7 @@ export const courseService = {
   
   updateCourse: async (id: string, courseData: any) => {
     try {
-      const response = await api.put(`/admin/courses/${id}`, courseData);
+      const response = await api.put(`/courses/${id}`, courseData);
       return { data: response.data, error: null };
     } catch (error: any) {
       return { 
@@ -231,12 +230,62 @@ export const courseService = {
   
   deleteCourse: async (id: string) => {
     try {
-      const response = await api.delete(`/admin/courses/${id}`);
+      const response = await api.delete(`/courses/${id}`);
       return { data: response.data, error: null };
     } catch (error: any) {
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to delete course' 
+      };
+    }
+  },
+
+  // Enrollment functions
+  enrollInCourse: async (courseId: string) => {
+    try {
+      const response = await api.post(`/courses/${courseId}/enroll`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to enroll in course' 
+      };
+    }
+  },
+  
+  getEnrolledCourses: async () => {
+    try {
+      const response = await api.get('/user/enrolled-courses');
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch enrolled courses' 
+      };
+    }
+  },
+  
+  // Teacher-specific functions
+  getTeacherCourses: async () => {
+    try {
+      const response = await api.get('/teacher/courses');
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch teacher courses' 
+      };
+    }
+  },
+  
+  getCourseAnalytics: async (courseId: string) => {
+    try {
+      const response = await api.get(`/teacher/courses/${courseId}/analytics`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch course analytics' 
       };
     }
   }

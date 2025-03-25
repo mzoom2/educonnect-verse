@@ -20,8 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Plus, Trash, Upload } from 'lucide-react';
+import { AlertCircle, ExternalLink, Plus, Trash, Upload } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import QuizBuilder from '@/components/courses/QuizBuilder';
+import PracticalTaskBuilder from '@/components/courses/PracticalTaskBuilder';
+import { 
+  CourseCreationData, 
+  CourseLesson, 
+  QuizQuestion, 
+  PracticalTask,
+  createCourse,
+  saveCourseAsDraft,
+  uploadCourseMedia 
+} from '@/services/courseService';
 
 // Form schema for basic course information
 const courseSchema = z.object({
@@ -51,12 +62,12 @@ const courseSchema = z.object({
   }),
 });
 
-// Lesson schema for validation
-const lessonSchema = z.object({
-  title: z.string().min(3, "Lesson title is required"),
-  content: z.string().min(20, "Lesson content is required"),
-  // We'll handle file uploads separately
-});
+// Enhanced interface for lesson with quiz and practical task
+interface EnhancedLesson extends CourseLesson {
+  videoFile?: File;
+  pdfFile?: File;
+  externalLinks: string[];
+}
 
 const CreateCourse = () => {
   const { user, updateUserMetadata } = useAuth();
@@ -66,19 +77,7 @@ const CreateCourse = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [courseImage, setCourseImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [lessons, setLessons] = useState<Array<{
-    title: string;
-    content: string;
-    video?: File;
-    pdf?: File;
-    quiz?: Array<{
-      question: string;
-      options: string[];
-      correctAnswer: number;
-      timeLimit: number;
-      reward: number;
-    }>;
-  }>>([]);
+  const [lessons, setLessons] = useState<EnhancedLesson[]>([]);
   
   // Check if user is a teacher
   const isTeacher = user?.role === 'teacher';
@@ -111,6 +110,28 @@ const CreateCourse = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Validate file type
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validImageTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a JPG, PNG, or WebP image",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Maximum image size is 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       setCourseImage(file);
       
       // Create preview
@@ -130,6 +151,19 @@ const CreateCourse = () => {
       const emptyLessons = Array.from({ length: duration }, (_, i) => ({
         title: `Day ${i + 1}`,
         content: "",
+        externalLinks: [],
+        quiz: [{
+          question: "",
+          options: ["", "", "", ""],
+          correctAnswer: 0,
+          timeLimit: 60,
+          reward: 100
+        }],
+        practicalTask: {
+          description: "",
+          expectedOutcome: "",
+          reward: 200
+        }
       }));
       setLessons(emptyLessons);
       setCurrentStep(2);
@@ -161,12 +195,97 @@ const CreateCourse = () => {
   };
 
   // Handle lesson update
-  const updateLesson = (index: number, field: string, value: any) => {
+  const updateLesson = (index: number, field: keyof EnhancedLesson, value: any) => {
     const updatedLessons = [...lessons];
     updatedLessons[index] = {
       ...updatedLessons[index],
       [field]: value
     };
+    setLessons(updatedLessons);
+  };
+
+  // Handle file upload for lessons
+  const handleLessonFileUpload = (index: number, type: 'videoFile' | 'pdfFile', e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file type
+      if (type === 'videoFile') {
+        const validTypes = ['video/mp4', 'video/webm'];
+        if (!validTypes.includes(file.type)) {
+          toast({
+            title: "Invalid file type",
+            description: "Please upload an MP4 or WebM video",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Validate file size (max 100MB)
+        if (file.size > 100 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: "Maximum video size is 100MB",
+            variant: "destructive"
+          });
+          return;
+        }
+      } else if (type === 'pdfFile') {
+        if (file.type !== 'application/pdf') {
+          toast({
+            title: "Invalid file type",
+            description: "Please upload a PDF document",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: "Maximum PDF size is 10MB",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
+      updateLesson(index, type, file);
+    }
+  };
+
+  // Handle external links
+  const addExternalLink = (lessonIndex: number) => {
+    const updatedLessons = [...lessons];
+    const currentLinks = updatedLessons[lessonIndex].externalLinks || [];
+    updatedLessons[lessonIndex].externalLinks = [...currentLinks, ''];
+    setLessons(updatedLessons);
+  };
+
+  const updateExternalLink = (lessonIndex: number, linkIndex: number, value: string) => {
+    const updatedLessons = [...lessons];
+    updatedLessons[lessonIndex].externalLinks[linkIndex] = value;
+    setLessons(updatedLessons);
+  };
+
+  const removeExternalLink = (lessonIndex: number, linkIndex: number) => {
+    const updatedLessons = [...lessons];
+    updatedLessons[lessonIndex].externalLinks.splice(linkIndex, 1);
+    setLessons(updatedLessons);
+  };
+
+  // Handle quiz update
+  const updateQuiz = (lessonIndex: number, questions: QuizQuestion[]) => {
+    const updatedLessons = [...lessons];
+    updatedLessons[lessonIndex].quiz = questions;
+    setLessons(updatedLessons);
+  };
+
+  // Handle practical task update
+  const updatePracticalTask = (lessonIndex: number, task: PracticalTask) => {
+    const updatedLessons = [...lessons];
+    updatedLessons[lessonIndex].practicalTask = task;
     setLessons(updatedLessons);
   };
 
@@ -212,14 +331,66 @@ const CreateCourse = () => {
   };
 
   // Submit course
-  const handleSubmitCourse = async () => {
+  const handleSubmitCourse = async (isDraft = false) => {
     setIsSubmitting(true);
     try {
-      // In a real app, this would send the course data to the backend
-      // For now, we'll just show a success message
+      // Upload course image if provided
+      let imageUrl = '';
+      if (courseImage) {
+        imageUrl = await uploadCourseMedia(courseImage, 'image');
+      }
+      
+      // Upload lesson files and prepare lesson data
+      const processedLessons = await Promise.all(lessons.map(async (lesson) => {
+        // Upload video if provided
+        let videoUrl = '';
+        if (lesson.videoFile) {
+          videoUrl = await uploadCourseMedia(lesson.videoFile, 'video');
+        }
+        
+        // Upload PDF if provided
+        let pdfUrl = '';
+        if (lesson.pdfFile) {
+          pdfUrl = await uploadCourseMedia(lesson.pdfFile, 'pdf');
+        }
+        
+        // Return processed lesson without the file objects
+        return {
+          title: lesson.title,
+          content: lesson.content,
+          videoUrl,
+          pdfUrl,
+          externalLinks: lesson.externalLinks.filter(link => link.trim() !== ''),
+          quiz: lesson.quiz,
+          practicalTask: lesson.practicalTask
+        };
+      }));
+      
+      // Prepare course data
+      const courseData: CourseCreationData = {
+        title: form.getValues().title,
+        description: form.getValues().description,
+        category: form.getValues().category,
+        difficulty: form.getValues().difficulty,
+        imageUrl,
+        prerequisites: form.getValues().prerequisites,
+        estimatedHours: parseInt(form.getValues().estimatedHours),
+        price: parseInt(form.getValues().price),
+        duration: parseInt(form.getValues().duration),
+        lessons: processedLessons,
+        isDraft
+      };
+      
+      // Submit course to API
+      const response = isDraft 
+        ? await saveCourseAsDraft(courseData)
+        : await createCourse(courseData);
+      
       toast({
-        title: "Course created",
-        description: "Your course has been created successfully!",
+        title: isDraft ? "Draft saved" : "Course created",
+        description: isDraft 
+          ? "Your course draft has been saved successfully!"
+          : "Your course has been published successfully!",
       });
       
       // Navigate back to dashboard
@@ -229,7 +400,7 @@ const CreateCourse = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create course. Please try again.",
+        description: `Failed to ${isDraft ? 'save draft' : 'create course'}. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -368,18 +539,18 @@ const CreateCourse = () => {
           {/* Step indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-between max-w-md mx-auto">
-              <div className={`flex flex-col items-center ${currentStep >= 1 ? 'text-edu-blue' : 'text-muted-foreground'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${currentStep >= 1 ? 'bg-edu-blue text-white' : 'bg-muted'}`}>1</div>
+              <div className={`flex flex-col items-center ${currentStep >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${currentStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>1</div>
                 <span className="text-sm">Basic Info</span>
               </div>
-              <div className={`w-16 h-0.5 ${currentStep >= 2 ? 'bg-edu-blue' : 'bg-muted'}`} />
-              <div className={`flex flex-col items-center ${currentStep >= 2 ? 'text-edu-blue' : 'text-muted-foreground'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${currentStep >= 2 ? 'bg-edu-blue text-white' : 'bg-muted'}`}>2</div>
+              <div className={`w-16 h-0.5 ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+              <div className={`flex flex-col items-center ${currentStep >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${currentStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>2</div>
                 <span className="text-sm">Lessons</span>
               </div>
-              <div className={`w-16 h-0.5 ${currentStep >= 3 ? 'bg-edu-blue' : 'bg-muted'}`} />
-              <div className={`flex flex-col items-center ${currentStep >= 3 ? 'text-edu-blue' : 'text-muted-foreground'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${currentStep >= 3 ? 'bg-edu-blue text-white' : 'bg-muted'}`}>3</div>
+              <div className={`w-16 h-0.5 ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+              <div className={`flex flex-col items-center ${currentStep >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${currentStep >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>3</div>
                 <span className="text-sm">Review</span>
               </div>
             </div>
@@ -464,6 +635,9 @@ const CreateCourse = () => {
                                 <SelectItem value="science">Science</SelectItem>
                                 <SelectItem value="math">Mathematics</SelectItem>
                                 <SelectItem value="health">Health</SelectItem>
+                                <SelectItem value="art">Art</SelectItem>
+                                <SelectItem value="music">Music</SelectItem>
+                                <SelectItem value="finance">Finance</SelectItem>
                                 <SelectItem value="other">Other</SelectItem>
                               </SelectContent>
                             </Select>
@@ -516,11 +690,11 @@ const CreateCourse = () => {
                             <Input
                               id="course-image"
                               type="file"
-                              accept="image/*"
+                              accept="image/jpeg,image/png,image/webp"
                               onChange={handleImageUpload}
                             />
                             <p className="text-sm text-muted-foreground mt-2">
-                              Recommended: 1280x720px (16:9 ratio), JPG or PNG
+                              Recommended: 1280x720px (16:9 ratio), JPG, PNG or WebP (max 5MB)
                             </p>
                           </div>
                         </div>
@@ -624,7 +798,7 @@ const CreateCourse = () => {
                     <div key={index} className="border rounded-lg p-4">
                       <h3 className="text-lg font-medium mb-4">Day {index + 1}</h3>
                       
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div>
                           <Label htmlFor={`lesson-title-${index}`}>Lesson Title</Label>
                           <Input
@@ -647,6 +821,7 @@ const CreateCourse = () => {
                           />
                         </div>
                         
+                        {/* Video Upload */}
                         <div>
                           <Label htmlFor={`lesson-video-${index}`}>Video (Optional)</Label>
                           <Input
@@ -654,12 +829,14 @@ const CreateCourse = () => {
                             type="file"
                             accept="video/mp4,video/webm"
                             className="mt-1"
+                            onChange={(e) => handleLessonFileUpload(index, 'videoFile', e)}
                           />
                           <p className="text-sm text-muted-foreground mt-1">
                             Max size: 100MB (.mp4, .webm)
                           </p>
                         </div>
                         
+                        {/* PDF Materials */}
                         <div>
                           <Label htmlFor={`lesson-pdf-${index}`}>PDF Materials (Optional)</Label>
                           <Input
@@ -667,10 +844,75 @@ const CreateCourse = () => {
                             type="file"
                             accept=".pdf"
                             className="mt-1"
+                            onChange={(e) => handleLessonFileUpload(index, 'pdfFile', e)}
                           />
                           <p className="text-sm text-muted-foreground mt-1">
                             Max size: 10MB (.pdf)
                           </p>
+                        </div>
+                        
+                        {/* External Links */}
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <Label>External Links (Optional)</Label>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => addExternalLink(index)}
+                              className="flex items-center gap-1 text-xs"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Add Link
+                            </Button>
+                          </div>
+                          
+                          {lesson.externalLinks && lesson.externalLinks.length > 0 ? (
+                            <div className="space-y-2">
+                              {lesson.externalLinks.map((link, linkIndex) => (
+                                <div key={linkIndex} className="flex items-center gap-2">
+                                  <Input
+                                    value={link}
+                                    onChange={(e) => updateExternalLink(index, linkIndex, e.target.value)}
+                                    placeholder="https://example.com/resource"
+                                    className="flex-1"
+                                  />
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => removeExternalLink(index, linkIndex)}
+                                    className="h-8 w-8"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center h-20 border border-dashed rounded-md">
+                              <div className="text-center text-muted-foreground">
+                                <ExternalLink className="h-8 w-8 mx-auto mb-2" />
+                                <p>No external links added</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Quiz Builder */}
+                        <div className="mt-6">
+                          <h4 className="text-base font-medium mb-2">Quiz</h4>
+                          <QuizBuilder 
+                            value={lesson.quiz || []} 
+                            onChange={(questions) => updateQuiz(index, questions)} 
+                          />
+                        </div>
+                        
+                        {/* Practical Task */}
+                        <div className="mt-6">
+                          <h4 className="text-base font-medium mb-2">Practical Task</h4>
+                          <PracticalTaskBuilder 
+                            value={lesson.practicalTask || { description: '', expectedOutcome: '', reward: 200 }} 
+                            onChange={(task) => updatePracticalTask(index, task)} 
+                          />
                         </div>
                       </div>
                     </div>
@@ -757,15 +999,30 @@ const CreateCourse = () => {
                   </div>
                   
                   <div>
-                    <h3 className="text-lg font-semibold">Lessons</h3>
+                    <h3 className="text-lg font-semibold">Lessons Overview</h3>
                     <div className="mt-2 space-y-4">
                       {lessons.map((lesson, index) => (
                         <div key={index} className="border rounded-md p-3">
-                          <p className="font-medium">Day {index + 1}: {lesson.title}</p>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {lesson.content.substring(0, 100)}
-                            {lesson.content.length > 100 ? '...' : ''}
-                          </p>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">Day {index + 1}: {lesson.title}</p>
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {lesson.content.substring(0, 100)}
+                                {lesson.content.length > 100 ? '...' : ''}
+                              </p>
+                            </div>
+                            <div className="text-right text-sm text-muted-foreground">
+                              {lesson.videoFile && <p>Video: ✓</p>}
+                              {lesson.pdfFile && <p>PDF: ✓</p>}
+                              {lesson.externalLinks?.filter(Boolean).length > 0 && (
+                                <p>Links: {lesson.externalLinks.filter(Boolean).length}</p>
+                              )}
+                              {lesson.quiz && lesson.quiz.length > 0 && (
+                                <p>Quiz: {lesson.quiz.filter(q => q.question).length} questions</p>
+                              )}
+                              {lesson.practicalTask?.description && <p>Task: ✓</p>}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -777,11 +1034,18 @@ const CreateCourse = () => {
                   Back
                 </Button>
                 <div className="space-x-2">
-                  <Button variant="outline">
-                    Save as Draft
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleSubmitCourse(true)}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save as Draft"}
                   </Button>
-                  <Button onClick={handleSubmitCourse} disabled={isSubmitting}>
-                    {isSubmitting ? "Creating..." : "Publish Course"}
+                  <Button 
+                    onClick={() => handleSubmitCourse(false)} 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Publishing..." : "Publish Course"}
                   </Button>
                 </div>
               </CardFooter>
