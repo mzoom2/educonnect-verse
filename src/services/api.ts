@@ -139,9 +139,10 @@ export const authService = {
   },
   
   // Add a method to update user metadata
-  updateUserMetadata: async (userId: number, metadata: any) => {
+  updateUserMetadata: async (userId: number, data: any) => {
     try {
-      const response = await api.put(`/auth/users/${userId}/metadata`, { metadata });
+      console.log("API call - update metadata:", userId, data);
+      const response = await api.put(`/auth/users/${userId}/metadata`, data);
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error('Error updating user metadata:', error);

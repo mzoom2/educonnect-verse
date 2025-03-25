@@ -37,7 +37,7 @@ type AuthContextType = {
   }>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
-  updateUserMetadata: (userId: number, metadata: any) => Promise<void>;
+  updateUserMetadata: (userId: number, data: any) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,10 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Function to update user metadata
-  const updateUserMetadata = async (userId: number, metadata: any) => {
+  const updateUserMetadata = async (userId: number, data: any) => {
     try {
       setLoading(true);
-      const { data, error } = await authService.updateUserMetadata(userId, metadata);
+      console.log("Updating user metadata with:", data);
+      
+      const { data: responseData, error } = await authService.updateUserMetadata(userId, data);
       
       if (error) {
         toast({
@@ -103,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Refresh user data to get the updated metadata
       await refreshUserData();
       
-      return data;
+      return responseData;
     } catch (err) {
       console.error("Error updating user metadata:", err);
       throw err;

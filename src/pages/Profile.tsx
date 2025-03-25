@@ -67,20 +67,21 @@ const Profile = () => {
     setIsSubmitting(true);
     try {
       // In a real app, this would send the application to the backend
-      // For now, we'll just update the user's metadata
       if (updateUserMetadata && user) {
-        await updateUserMetadata(user.id, { 
-          metadata: {
-            ...user.metadata,
-            teacherApplication: {
-              qualification: values.qualification,
-              experience: values.experience,
-              specialization: values.specialization,
-              status: 'pending',
-              submittedAt: new Date().toISOString()
-            }
+        // Create a proper metadata object that preserves existing metadata
+        const updatedMetadata = {
+          ...user.metadata,
+          teacherApplication: {
+            qualification: values.qualification,
+            experience: values.experience,
+            specialization: values.specialization,
+            status: 'pending',
+            submittedAt: new Date().toISOString()
           }
-        });
+        };
+
+        // Update the user's metadata with the new values
+        await updateUserMetadata(user.id, { metadata: updatedMetadata });
         
         toast({
           title: "Application submitted",
@@ -90,6 +91,7 @@ const Profile = () => {
         setShowTeacherForm(false);
       }
     } catch (error) {
+      console.error("Teacher application error:", error);
       toast({
         title: "Error",
         description: "Failed to submit application. Please try again.",
