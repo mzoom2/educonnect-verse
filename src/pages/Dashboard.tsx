@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -49,11 +50,11 @@ const Dashboard = () => {
   }
 
   // Get courses for different sections
-  const recentlyViewedCourses = getRecentlyViewedCourses(courses);
-  const popularCourses = getPopularCourses(courses);
-  const recommendedCourses = getRecommendedCourses(courses);
-  const inDemandCourses = getInDemandCourses(courses);
-  const categoryData = getCategoryCourseCount(courses);
+  const recentlyViewedCourses = getRecentlyViewedCourses(courses || []);
+  const popularCourses = getPopularCourses(courses || []);
+  const recommendedCourses = getRecommendedCourses(courses || []);
+  const inDemandCourses = getInDemandCourses(courses || []);
+  const categoryData = getCategoryCourseCount(courses || []);
 
   return (
     <DashboardLayout>
