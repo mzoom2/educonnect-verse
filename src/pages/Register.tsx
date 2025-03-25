@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,11 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Registration error:', error);
+      toast({
+        title: "Registration error",
+        description: "An unexpected error occurred during registration.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

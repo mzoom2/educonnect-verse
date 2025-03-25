@@ -12,7 +12,9 @@ export const PrivateRoute = () => {
     // Verify user data on route access by fetching from DB
     const verifyUser = async () => {
       try {
-        await refreshUserData();
+        if (!user) {
+          await refreshUserData();
+        }
       } catch (error) {
         console.error('Error refreshing user data:', error);
         toast({
@@ -24,7 +26,7 @@ export const PrivateRoute = () => {
     };
     
     verifyUser();
-  }, [refreshUserData, toast]);
+  }, [refreshUserData, toast, user]);
   
   if (loading) {
     return (

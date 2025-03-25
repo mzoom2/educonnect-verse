@@ -33,6 +33,8 @@ const Login = () => {
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("Login error:", errorMessage);
       toast({
         title: "An unexpected error occurred",
         description: "Please try again later",

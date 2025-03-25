@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -26,9 +25,8 @@ const Dashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   
-  // Get user's name from username in metadata, or email, or fallback to "Student"
-  const userName = user?.user_metadata?.username || 
-                  (user?.email ? user.email.split('@')[0] : 'Student');
+  // Get user's name from username, or fallback to "Student"
+  const userName = user ? user.username : 'Student';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

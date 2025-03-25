@@ -131,11 +131,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { error, data } = await authService.login(email, password);
       
       if (!error && data) {
-        setUser(data.user);
-        setIsAdmin(data.user.role === 'admin');
+        // Successfully logged in, refresh user data
+        await refreshUserData();
         
         navigate('/dashboard');
         toast({
@@ -159,12 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         variant: "destructive"
       });
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   // Sign up with email and password
   const signUp = async (email: string, password: string, username: string) => {
     try {
+      setLoading(true);
       const { error, data } = await authService.register(email, password, username);
       
       if (error) {
@@ -187,13 +191,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data) {
         // Auto login after successful registration
-        await signIn(email, password);
+        const loginResult = await signIn(email, password);
         
-        toast({
-          title: "Registration successful",
-          description: "Your account has been created",
-        });
-        navigate('/dashboard');
+        if (!loginResult.error) {
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created",
+          });
+        } else {
+          // If auto-login fails, show a message but don't treat signup as failed
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created, but we couldn't log you in automatically. Please try logging in.",
+          });
+          navigate('/login');
+        }
       }
       
       return { error: null, data };
@@ -205,6 +217,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         variant: "destructive"
       });
       return { error, data: null };
+    } finally {
+      setLoading(false);
     }
   };
 
