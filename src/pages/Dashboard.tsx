@@ -130,7 +130,7 @@ const Dashboard = () => {
                     View all <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={recentlyViewedCourses} />
+                <CourseCarousel courses={recentlyViewedCourses} emptyMessage="You haven't viewed any courses yet" />
               </section>
 
               {/* Most Popular Courses */}
@@ -141,7 +141,7 @@ const Dashboard = () => {
                     View all <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={popularCourses} />
+                <CourseCarousel courses={popularCourses} emptyMessage="No popular courses available" />
               </section>
 
               {/* Personalized Recommendations */}
@@ -152,7 +152,7 @@ const Dashboard = () => {
                     See all recommendations <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={recommendedCourses} />
+                <CourseCarousel courses={recommendedCourses} emptyMessage="No recommendations available yet" />
               </section>
 
               {/* In-Demand Skills */}
@@ -163,7 +163,7 @@ const Dashboard = () => {
                     View all <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={inDemandCourses} />
+                <CourseCarousel courses={inDemandCourses} emptyMessage="No in-demand courses available" />
               </section>
 
               {/* Categories */}
