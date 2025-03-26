@@ -41,9 +41,10 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     username = db.Column(db.String(100))
-    role = db.Column(db.String(20), default='user')  # 'user' or 'admin'
+    role = db.Column(db.String(20), default='user')  # 'user', 'teacher', or 'admin'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
+    metadata = db.Column(db.JSON, default={})
     
     def to_dict(self):
         return {
@@ -52,7 +53,8 @@ class User(db.Model):
             'username': self.username,
             'role': self.role,
             'created_at': self.created_at.isoformat(),
-            'last_login': self.last_login.isoformat() if self.last_login else None
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'metadata': self.metadata
         }
 
 # Define Course model
@@ -210,6 +212,88 @@ def get_current_user(current_user):
     return jsonify({
         'user': current_user.to_dict()
     }), 200
+
+# Add user metadata endpoint
+@app.route('/api/auth/users/<int:user_id>/metadata', methods=['PUT'])
+@token_required
+def update_user_metadata(current_user, user_id):
+    # Ensure user can only update their own metadata
+    if current_user.id != user_id and current_user.role != 'admin':
+        return jsonify({'message': 'Unauthorized to update this user\'s metadata'}), 403
+    
+    data = request.get_json()
+    if not data or 'metadata' not in data:
+        return jsonify({'message': 'Missing metadata field'}), 400
+    
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+        
+        # Update the metadata
+        if user.metadata:
+            # If user already has metadata, update it
+            user.metadata.update(data['metadata'])
+        else:
+            # Otherwise, set it directly
+            user.metadata = data['metadata']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'User metadata updated successfully',
+            'user': user.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating user metadata: {str(e)}")
+        return jsonify({'message': f'Error updating metadata: {str(e)}'}), 500
+
+# Add teacher application endpoint
+@app.route('/api/auth/users/<int:user_id>/apply-teacher', methods=['POST'])
+@token_required
+def apply_as_teacher(current_user, user_id):
+    # Ensure user can only apply for themselves
+    if current_user.id != user_id:
+        return jsonify({'message': 'Unauthorized to submit application for another user'}), 403
+    
+    # Check if user is already a teacher
+    if current_user.role == 'teacher':
+        return jsonify({'message': 'User is already a teacher'}), 400
+    
+    data = request.get_json()
+    if not data or 'teacherApplication' not in data:
+        return jsonify({'message': 'Missing application data'}), 400
+    
+    try:
+        # Get application data
+        application_data = data['teacherApplication']
+        
+        # Update user metadata with application data
+        if not current_user.metadata:
+            current_user.metadata = {}
+        
+        # Add the teacher application to user metadata
+        current_user.metadata['teacherApplication'] = application_data
+        
+        # Log the activity
+        log_activity = ActivityLog(
+            user_id=current_user.id,
+            action_type='teacher_application',
+            details=f"User applied to become a teacher: {current_user.email}"
+        )
+        db.session.add(log_activity)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Teacher application submitted successfully',
+            'user': current_user.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error submitting teacher application: {str(e)}")
+        return jsonify({'message': f'Error submitting application: {str(e)}'}), 500
 
 # Routes for courses
 @app.route('/api/courses', methods=['GET'])

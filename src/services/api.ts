@@ -50,9 +50,6 @@ api.interceptors.response.use(
       console.log('Authentication error - clearing stored data');
       // Clear stored authentication data
       localStorage.removeItem('token');
-      
-      // You might want to redirect to login page here
-      // window.location.href = '/login';
     }
     
     return Promise.reject(error);
@@ -138,7 +135,7 @@ export const authService = {
     }
   },
   
-  // Add a method to update user metadata
+  // Update user metadata method
   updateUserMetadata: async (userId: number, data: any) => {
     try {
       console.log("API call - update metadata:", userId, data);
@@ -149,6 +146,21 @@ export const authService = {
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to update user data' 
+      };
+    }
+  },
+  
+  // Add a method specifically for teacher applications
+  applyAsTeacher: async (userId: number, applicationData: any) => {
+    try {
+      console.log("API call - teacher application:", userId, applicationData);
+      const response = await api.post(`/auth/users/${userId}/apply-teacher`, applicationData);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Error submitting teacher application:', error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to submit teacher application' 
       };
     }
   }

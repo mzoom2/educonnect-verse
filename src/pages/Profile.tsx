@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link } from 'react-router-dom';
+import { useApi } from '@/hooks/useApi';
 
 // Form schema for becoming a teacher
 const teacherFormSchema = z.object({
@@ -30,10 +31,18 @@ const teacherFormSchema = z.object({
 });
 
 const Profile = () => {
-  const { user, updateUserMetadata } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTeacherForm, setShowTeacherForm] = useState(false);
+  
+  // Use the API hook for teacher application
+  const { fetchData: submitTeacherApplication } = useApi(
+    `/auth/users/${user?.id}/apply-teacher`, 
+    'post', 
+    undefined,
+    false
+  );
   
   // Get user's name or fallback
   const userName = user?.username || 'User';
@@ -64,37 +73,47 @@ const Profile = () => {
 
   // Handle teacher application submission
   const onSubmitTeacherApplication = async (values: z.infer<typeof teacherFormSchema>) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to apply as a teacher.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      // In a real app, this would send the application to the backend
-      if (updateUserMetadata && user) {
-        // Create a proper metadata object that preserves existing metadata
-        const updatedMetadata = {
-          ...user.metadata,
-          teacherApplication: {
-            qualification: values.qualification,
-            experience: values.experience,
-            specialization: values.specialization,
-            status: 'pending',
-            submittedAt: new Date().toISOString()
-          }
-        };
+      const applicationData = {
+        teacherApplication: {
+          qualification: values.qualification,
+          experience: values.experience,
+          specialization: values.specialization,
+          status: 'pending',
+          submittedAt: new Date().toISOString()
+        }
+      };
 
-        // Update the user's metadata with the new values
-        await updateUserMetadata(user.id, { metadata: updatedMetadata });
-        
-        toast({
-          title: "Application submitted",
-          description: "Your application to become a teacher has been submitted successfully!",
-        });
-        
-        setShowTeacherForm(false);
+      console.log("Submitting application data:", applicationData);
+      
+      // Use the API hook to submit the application
+      const { error } = await submitTeacherApplication(applicationData);
+      
+      if (error) {
+        throw new Error(error);
       }
-    } catch (error) {
+      
+      toast({
+        title: "Application submitted",
+        description: "Your application to become a teacher has been submitted successfully!",
+      });
+      
+      setShowTeacherForm(false);
+    } catch (error: any) {
       console.error("Teacher application error:", error);
       toast({
         title: "Error",
-        description: "Failed to submit application. Please try again.",
+        description: error.message || "Failed to submit application. Please try again.",
         variant: "destructive",
       });
     } finally {

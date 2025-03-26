@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
@@ -29,7 +28,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
       const requestBody = newBody || body;
       let response;
       
-      console.log(`Making ${method.toUpperCase()} request to ${url}`);
+      console.log(`Making ${method.toUpperCase()} request to ${url}`, requestBody);
       
       switch (method) {
         case 'get':
@@ -94,7 +93,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
     }
   }, [immediate, fetchData]);
 
-  return { ...state, refetch: fetchData };
+  return { ...state, fetchData, refetch: fetchData };
 }
 
 // Specialized hooks for common operations
