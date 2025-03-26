@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Wallet, GraduationCap, PlusCircle } from 'lucide-react';
+import { Wallet, GraduationCap, PlusCircle, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -31,7 +31,7 @@ const teacherFormSchema = z.object({
 });
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTeacherForm, setShowTeacherForm] = useState(false);
@@ -89,7 +89,7 @@ const Profile = () => {
           qualification: values.qualification,
           experience: values.experience,
           specialization: values.specialization,
-          status: 'pending',
+          status: 'approved', // Set to approved since we're immediately making them a teacher
           submittedAt: new Date().toISOString()
         }
       };
@@ -97,15 +97,19 @@ const Profile = () => {
       console.log("Submitting application data:", applicationData);
       
       // Use the API hook to submit the application
-      const { error } = await submitTeacherApplication(applicationData);
+      const { error, data } = await submitTeacherApplication(applicationData);
       
       if (error) {
         throw new Error(error);
       }
       
+      // Refresh user data to get updated role
+      await refreshUserData();
+      
       toast({
-        title: "Application submitted",
-        description: "Your application to become a teacher has been submitted successfully!",
+        title: "Application approved",
+        description: "You are now a teacher! You can create and manage courses.",
+        variant: "default",
       });
       
       setShowTeacherForm(false);
@@ -147,7 +151,16 @@ const Profile = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="font-medium">Role:</div>
-                  <div className="ml-2">{isTeacher ? 'Teacher' : 'Student'}</div>
+                  <div className="ml-2 flex items-center">
+                    {isTeacher ? (
+                      <>
+                        <span className="text-green-600 font-medium">Teacher</span>
+                        <Check className="h-4 w-4 text-green-600 ml-1" />
+                      </>
+                    ) : (
+                      'Student'
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="font-medium">Member since:</div>
@@ -178,8 +191,8 @@ const Profile = () => {
             <CardContent>
               {isTeacher ? (
                 <div className="space-y-6">
-                  <div className="bg-green-50 text-green-800 rounded-md p-4">
-                    <p className="font-medium">You are already a teacher!</p>
+                  <div className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded-md p-4">
+                    <p className="font-medium">You are now a teacher!</p>
                     <p className="mt-2">You can create courses and earn by sharing your knowledge.</p>
                   </div>
                   <Link to="/create-course">

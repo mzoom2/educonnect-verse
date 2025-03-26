@@ -270,11 +270,14 @@ def apply_as_teacher(current_user, user_id):
         application_data = data['teacherApplication']
         
         # Update user metadata with application data
-        if not current_user.user_metadata:  # Changed from current_user.metadata to current_user.user_metadata
-            current_user.user_metadata = {}  # Changed from current_user.metadata to current_user.user_metadata
+        if not current_user.user_metadata:
+            current_user.user_metadata = {}
         
         # Add the teacher application to user metadata
-        current_user.user_metadata['teacherApplication'] = application_data  # Changed from current_user.metadata to current_user.user_metadata
+        current_user.user_metadata['teacherApplication'] = application_data
+        
+        # Update the user role to 'teacher' immediately
+        current_user.role = 'teacher'
         
         # Log the activity
         log_activity = ActivityLog(
@@ -287,7 +290,7 @@ def apply_as_teacher(current_user, user_id):
         db.session.commit()
         
         return jsonify({
-            'message': 'Teacher application submitted successfully',
+            'message': 'Teacher application submitted successfully and role updated to teacher',
             'user': current_user.to_dict()
         }), 200
     except Exception as e:
