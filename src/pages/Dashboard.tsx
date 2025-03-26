@@ -1,55 +1,50 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { CalendarIcon, ExternalLink, FileText, Github, HelpCircle, Settings } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Settings, CalendarIcon, FileText, Github, HelpCircle, ExternalLink } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link } from 'react-router-dom';
-import CourseCarousel from '@/components/courses/CourseCarousel';
-import { useAllCourses, getRecentlyViewedCourses, getPopularCourses, getRecommendedCourses, getInDemandCourses, getCategoryCourseCount, useSearchCourses } from '@/services/courseService';
+import CourseCarousel from '@/components/dashboard/CourseCarousel';
+import { 
+  useAllCourses, 
+  getRecentlyViewedCourses, 
+  getPopularCourses, 
+  getRecommendedCourses, 
+  getInDemandCourses, 
+  getCategoryCourseCount, 
+  useSearchCourses,
+  useEnrolledCourses,
+  useTeacherCourses
+} from '@/services/courseService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const { courses, loading: allCoursesLoading } = useAllCourses();
+  const { courses, loading: allCoursesLoading, refetchCourses } = useAllCourses();
   const { searchResults, loading: searchLoading } = useSearchCourses(searchTerm);
+  const { enrolledCourses, loading: enrolledLoading } = useEnrolledCourses();
+  const { teacherCourses, loading: teacherCoursesLoading } = useTeacherCourses();
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Refresh courses data when user changes
+  useEffect(() => {
+    if (user) {
+      refetchCourses();
+    }
+  }, [user, refetchCourses]);
 
   // Get user's name or fallback
   const userName = user?.username || 'User';
-
-  // Calculate initials for avatar fallback
-  const getInitials = () => {
-    if (userName) {
-      return userName.substring(0, 2).toUpperCase();
-    }
-    return "US";
-  };
+  const isTeacher = user?.role === 'teacher';
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,7 +137,7 @@ const Dashboard = () => {
                 <CardDescription>Number of courses you are currently enrolled in</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">{enrolledCourses.length}</div>
               </CardContent>
             </Card>
 
@@ -187,6 +182,24 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          {/* Teacher's Created Courses (only shown to teachers) */}
+          {isTeacher && (
+            <CourseCarousel
+              title="Your Created Courses"
+              courses={teacherCourses}
+              loading={teacherCoursesLoading}
+              emptyMessage="You haven't created any courses yet. Click 'Create Course' to get started!"
+            />
+          )}
+
+          {/* User's Enrolled Courses */}
+          <CourseCarousel
+            title="Your Enrolled Courses"
+            courses={enrolledCourses}
+            loading={enrolledLoading}
+            emptyMessage="You're not enrolled in any courses yet. Browse courses below to get started!"
+          />
+
           {/* Course Carousels */}
           <CourseCarousel
             title="Recently Viewed Courses"
@@ -222,7 +235,7 @@ const Dashboard = () => {
               title="Search Results"
               courses={filteredCourses}
               loading={searchLoading}
-              emptyMessage={hasSearched ? "No courses found matching your search." : "You haven't viewed any courses yet."}
+              emptyMessage={hasSearched ? "No courses found matching your search." : "Type to search for courses."}
             />
           )}
 
@@ -249,7 +262,7 @@ const Dashboard = () => {
                       <Badge variant="secondary">Paid</Badge>
                     </TableCell>
                     <TableCell>Credit Card</TableCell>
-                    <TableCell className="text-right">$250.00</TableCell>
+                    <TableCell className="text-right">₦250.00</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="font-medium">INV002</TableCell>
@@ -257,7 +270,7 @@ const Dashboard = () => {
                       <Badge variant="destructive">Unpaid</Badge>
                     </TableCell>
                     <TableCell>PayPal</TableCell>
-                    <TableCell className="text-right">$150.00</TableCell>
+                    <TableCell className="text-right">₦150.00</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="font-medium">INV003</TableCell>
@@ -265,7 +278,7 @@ const Dashboard = () => {
                       <Badge variant="secondary">Paid</Badge>
                     </TableCell>
                     <TableCell>Direct Transfer</TableCell>
-                    <TableCell className="text-right">$300.00</TableCell>
+                    <TableCell className="text-right">₦300.00</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="font-medium">INV004</TableCell>
@@ -273,7 +286,7 @@ const Dashboard = () => {
                       <Badge variant="secondary">Paid</Badge>
                     </TableCell>
                     <TableCell>Credit Card</TableCell>
-                    <TableCell className="text-right">$200.00</TableCell>
+                    <TableCell className="text-right">₦200.00</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

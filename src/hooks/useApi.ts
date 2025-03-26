@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
@@ -113,6 +114,40 @@ export function useCourseDetails(id: string, immediate = true) {
   return useApi(`/courses/${id}`, 'get', undefined, immediate);
 }
 
+// Course creation and enrollment hooks
+export function useCreateCourse() {
+  const { fetchData, isLoading, error } = useApi('/courses', 'post', undefined, false);
+  const { toast } = useToast();
+  
+  const createCourse = async (courseData: any) => {
+    try {
+      const result = await fetchData(courseData);
+      
+      if (result.data) {
+        toast({
+          title: "Course created successfully",
+          description: "Your course has been created and is now available.",
+        });
+      }
+      
+      return result;
+    } catch (error: any) {
+      toast({
+        title: "Failed to create course",
+        description: error.message || "An error occurred while creating your course.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  return { createCourse, isLoading, error };
+}
+
+export function useEnrollInCourse(courseId: string) {
+  return useApi(`/courses/${courseId}/enroll`, 'post', undefined, false);
+}
+
 // Admin specific hooks
 export function useAdminDashboard(immediate = true) {
   return useApi('/admin/dashboard', 'get', undefined, immediate);
@@ -120,10 +155,6 @@ export function useAdminDashboard(immediate = true) {
 
 export function useAdminUsers(immediate = true) {
   return useApi('/admin/users', 'get', undefined, immediate);
-}
-
-export function useCreateCourse() {
-  return useApi('/admin/courses', 'post', undefined, false);
 }
 
 export function useUpdateCourse(id: string) {

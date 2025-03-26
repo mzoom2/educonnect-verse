@@ -1,7 +1,7 @@
-
 import { courseService } from './api';
 import { useState, useEffect } from 'react';
 import { useApi } from '@/hooks/useApi';
+import { useToast } from '@/hooks/use-toast';
 
 // Interface for Course Quiz Question
 export interface QuizQuestion {
@@ -52,11 +52,12 @@ export const createCourse = async (courseData: CourseCreationData) => {
     const response = await courseService.createCourse(courseData);
     
     if (!response.data) {
-      throw new Error("Failed to create course. No response data received.");
+      console.error("Failed to create course. API response:", response);
+      throw new Error(response.error || "Failed to create course. No response data received.");
     }
     
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating course:', error);
     throw error;
   }
@@ -70,11 +71,12 @@ export const saveCourseAsDraft = async (courseData: CourseCreationData) => {
     const response = await courseService.createCourse(courseData);
     
     if (!response.data) {
-      throw new Error("Failed to save course draft. No response data received.");
+      console.error("Failed to save course draft. API response:", response);
+      throw new Error(response.error || "Failed to save course draft. No response data received.");
     }
     
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving course draft:', error);
     throw error;
   }
@@ -87,7 +89,7 @@ export const uploadCourseMedia = async (file: File, type: 'video' | 'pdf' | 'ima
     formData.append('file', file);
     formData.append('type', type);
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -96,7 +98,9 @@ export const uploadCourseMedia = async (file: File, type: 'video' | 'pdf' | 'ima
     });
 
     if (!response.ok) {
-      throw new Error('File upload failed');
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`File upload failed:`, errorData);
+      throw new Error(errorData.message || 'File upload failed');
     }
 
     const data = await response.json();
@@ -107,13 +111,49 @@ export const uploadCourseMedia = async (file: File, type: 'video' | 'pdf' | 'ima
   }
 };
 
+// Add custom hook for actual API fetching
+export const useCoursesFromAPI = () => {
+  const { data, isLoading, error, refetch } = useApi<any[]>('/courses', 'get');
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading courses",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+  
+  return { 
+    courses: data || [], 
+    loading: isLoading,
+    error,
+    refetchCourses: refetch
+  };
+};
+
 // Add custom hooks for courses
 export const useAllCourses = () => {
+  const { courses: apiCourses, loading: apiLoading, error, refetchCourses } = useCoursesFromAPI();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call for now
+    if (apiLoading) {
+      setLoading(true);
+      return;
+    }
+    
+    if (apiCourses && apiCourses.length > 0) {
+      // Use API data if available
+      setCourses(apiCourses);
+      setLoading(false);
+      return;
+    }
+    
+    // Fallback to mock data if API returns empty or fails
     setLoading(true);
     setTimeout(() => {
       // This is mock data until we have a real API
@@ -250,9 +290,9 @@ export const useAllCourses = () => {
       setCourses(mockCourses);
       setLoading(false);
     }, 1000);
-  }, []);
+  }, [apiCourses, apiLoading]);
 
-  return { courses, loading };
+  return { courses, loading, refetchCourses };
 };
 
 export const useSearchCourses = (searchTerm: string) => {
@@ -320,4 +360,27 @@ export const getCategoryCourseCount = (allCourses: any[]) => {
     name,
     count
   }));
+};
+
+// Add functions to specifically fetch user-related courses
+export const useEnrolledCourses = () => {
+  const { data, isLoading, error, refetch } = useApi<any[]>('/user/enrolled-courses', 'get');
+  
+  return { 
+    enrolledCourses: data || [], 
+    loading: isLoading,
+    error,
+    refetchEnrolledCourses: refetch
+  };
+};
+
+export const useTeacherCourses = () => {
+  const { data, isLoading, error, refetch } = useApi<any[]>('/teacher/courses', 'get');
+  
+  return { 
+    teacherCourses: data || [], 
+    loading: isLoading,
+    error,
+    refetchTeacherCourses: refetch
+  };
 };
