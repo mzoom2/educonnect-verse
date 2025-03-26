@@ -113,7 +113,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <CourseCarousel 
-                  courses={searchResults} 
+                  courses={searchResults || []} 
                   emptyMessage="No courses matching your search criteria"
                 />
               )}
