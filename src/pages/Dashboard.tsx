@@ -22,7 +22,8 @@ const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const { courses, loading: coursesLoading } = useAllCourses();
-  const { searchResults, loading: searchLoading } = useSearchCourses(searchTerm);
+  // Update this line to ensure searchResults is properly typed as Course[] 
+  const { searchResults, loading: searchLoading } = useSearchCourses(searchTerm) as { searchResults: Course[] | null, loading: boolean };
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   
