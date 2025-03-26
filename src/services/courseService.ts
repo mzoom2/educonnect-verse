@@ -48,7 +48,13 @@ export interface CourseCreationData {
 // Create a new course
 export const createCourse = async (courseData: CourseCreationData) => {
   try {
+    console.log("Creating course with data:", courseData);
     const response = await courseService.createCourse(courseData);
+    
+    if (!response.data) {
+      throw new Error("Failed to create course. No response data received.");
+    }
+    
     return response;
   } catch (error) {
     console.error('Error creating course:', error);
@@ -60,7 +66,13 @@ export const createCourse = async (courseData: CourseCreationData) => {
 export const saveCourseAsDraft = async (courseData: CourseCreationData) => {
   try {
     courseData.isDraft = true;
+    console.log("Saving course draft with data:", courseData);
     const response = await courseService.createCourse(courseData);
+    
+    if (!response.data) {
+      throw new Error("Failed to save course draft. No response data received.");
+    }
+    
     return response;
   } catch (error) {
     console.error('Error saving course draft:', error);

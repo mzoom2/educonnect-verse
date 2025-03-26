@@ -154,7 +154,20 @@ export const authService = {
   applyAsTeacher: async (userId: number, applicationData: any) => {
     try {
       console.log("API call - teacher application:", userId, applicationData);
+      // Ensure we're explicitly sending the role update
+      if (!applicationData.role) {
+        applicationData.role = 'teacher';
+      }
+      
       const response = await api.post(`/auth/users/${userId}/apply-teacher`, applicationData);
+      
+      // Check if we got a valid response
+      if (response.data) {
+        console.log("Teacher application successful:", response.data);
+      } else {
+        console.error("No data in teacher application response");
+      }
+      
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error('Error submitting teacher application:', error);

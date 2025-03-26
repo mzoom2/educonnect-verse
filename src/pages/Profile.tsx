@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -48,7 +47,7 @@ const Profile = () => {
   const userName = user?.username || 'User';
   
   // User's balance (default to 0 if not set)
-  const userBalance = user?.metadata?.balance || 0;
+  const userBalance = user?.user_metadata?.balance || 0;
   
   // Check if user is already a teacher
   const isTeacher = user?.role === 'teacher';
@@ -91,7 +90,8 @@ const Profile = () => {
           specialization: values.specialization,
           status: 'approved', // Set to approved since we're immediately making them a teacher
           submittedAt: new Date().toISOString()
-        }
+        },
+        role: 'teacher' // Explicitly setting the role to teacher
       };
 
       console.log("Submitting application data:", applicationData);
@@ -126,7 +126,7 @@ const Profile = () => {
   };
 
   // Get teacher application status if available
-  const teacherApplication = user?.metadata?.teacherApplication;
+  const teacherApplication = user?.user_metadata?.teacherApplication;
   const applicationStatus = teacherApplication?.status || null;
 
   return (
