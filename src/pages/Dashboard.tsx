@@ -131,7 +131,10 @@ const Dashboard = () => {
                     View all <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={recentlyViewedCourses} emptyMessage="You haven't viewed any courses yet" />
+                <CourseCarousel 
+                  courses={recentlyViewedCourses} 
+                  emptyMessage="You haven't viewed any courses yet" 
+                />
               </section>
 
               {/* Most Popular Courses */}
@@ -142,7 +145,10 @@ const Dashboard = () => {
                     View all <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={popularCourses} emptyMessage="No popular courses available" />
+                <CourseCarousel 
+                  courses={popularCourses} 
+                  emptyMessage="No popular courses available" 
+                />
               </section>
 
               {/* Personalized Recommendations */}
@@ -153,7 +159,10 @@ const Dashboard = () => {
                     See all recommendations <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={recommendedCourses} emptyMessage="No recommendations available yet" />
+                <CourseCarousel 
+                  courses={recommendedCourses} 
+                  emptyMessage="No recommendations available yet" 
+                />
               </section>
 
               {/* In-Demand Skills */}
@@ -164,7 +173,10 @@ const Dashboard = () => {
                     View all <ChevronRight size={16} className="ml-1" />
                   </Button>
                 </div>
-                <CourseCarousel courses={inDemandCourses} emptyMessage="No in-demand courses available" />
+                <CourseCarousel 
+                  courses={inDemandCourses} 
+                  emptyMessage="No in-demand courses available" 
+                />
               </section>
 
               {/* Categories */}
@@ -193,3 +205,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
