@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -115,7 +114,7 @@ const Dashboard = () => {
               ) : (
                 <CourseCarousel 
                   courses={searchResults || []} 
-                  emptyMessage="No courses matching your search criteria"
+                  emptyMessage={"No courses matching your search criteria"} 
                 />
               )}
             </section>
@@ -133,7 +132,7 @@ const Dashboard = () => {
                 </div>
                 <CourseCarousel 
                   courses={recentlyViewedCourses} 
-                  emptyMessage="You haven't viewed any courses yet" 
+                  emptyMessage={"You haven't viewed any courses yet"} 
                 />
               </section>
 
@@ -147,7 +146,7 @@ const Dashboard = () => {
                 </div>
                 <CourseCarousel 
                   courses={popularCourses} 
-                  emptyMessage="No popular courses available" 
+                  emptyMessage={"No popular courses available"} 
                 />
               </section>
 
@@ -161,7 +160,7 @@ const Dashboard = () => {
                 </div>
                 <CourseCarousel 
                   courses={recommendedCourses} 
-                  emptyMessage="No recommendations available yet" 
+                  emptyMessage={"No recommendations available yet"} 
                 />
               </section>
 
@@ -175,7 +174,7 @@ const Dashboard = () => {
                 </div>
                 <CourseCarousel 
                   courses={inDemandCourses} 
-                  emptyMessage="No in-demand courses available" 
+                  emptyMessage={"No in-demand courses available"} 
                 />
               </section>
 
@@ -205,4 +204,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

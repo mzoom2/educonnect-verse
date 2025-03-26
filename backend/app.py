@@ -44,7 +44,7 @@ class User(db.Model):
     role = db.Column(db.String(20), default='user')  # 'user', 'teacher', or 'admin'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
-    metadata = db.Column(db.JSON, default={})
+    user_metadata = db.Column(db.JSON, default={})  # Renamed from 'metadata' to 'user_metadata'
     
     def to_dict(self):
         return {
@@ -54,7 +54,7 @@ class User(db.Model):
             'role': self.role,
             'created_at': self.created_at.isoformat(),
             'last_login': self.last_login.isoformat() if self.last_login else None,
-            'metadata': self.metadata
+            'metadata': self.user_metadata  # Keep the field name in the API response the same for compatibility
         }
 
 # Define Course model
@@ -231,12 +231,12 @@ def update_user_metadata(current_user, user_id):
             return jsonify({'message': 'User not found'}), 404
         
         # Update the metadata
-        if user.metadata:
+        if user.user_metadata:  # Changed from user.metadata to user.user_metadata
             # If user already has metadata, update it
-            user.metadata.update(data['metadata'])
+            user.user_metadata.update(data['metadata'])  # Changed from user.metadata to user.user_metadata
         else:
             # Otherwise, set it directly
-            user.metadata = data['metadata']
+            user.user_metadata = data['metadata']  # Changed from user.metadata to user.user_metadata
         
         db.session.commit()
         
@@ -270,11 +270,11 @@ def apply_as_teacher(current_user, user_id):
         application_data = data['teacherApplication']
         
         # Update user metadata with application data
-        if not current_user.metadata:
-            current_user.metadata = {}
+        if not current_user.user_metadata:  # Changed from current_user.metadata to current_user.user_metadata
+            current_user.user_metadata = {}  # Changed from current_user.metadata to current_user.user_metadata
         
         # Add the teacher application to user metadata
-        current_user.metadata['teacherApplication'] = application_data
+        current_user.user_metadata['teacherApplication'] = application_data  # Changed from current_user.metadata to current_user.user_metadata
         
         # Log the activity
         log_activity = ActivityLog(
