@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -507,38 +506,45 @@ def add_course(current_user):
     
     data = request.get_json()
     
+    # Log the incoming data
+    print(f"Received course creation data: {data}")
+    
     # Validate input data
-    if not data or not data.get('title') or not data.get('author'):
+    if not data or not data.get('title'):
         return jsonify({'message': 'Missing required fields'}), 400
     
-    new_course = Course(
-        title=data['title'],
-        description=data.get('description', ''),
-        author=data['author'],
-        image=data.get('image', ''),
-        rating=data.get('rating', 0.0),
-        duration=data.get('duration', ''),
-        price=data.get('price', ''),
-        category=data.get('category', ''),
-        view_count=data.get('viewCount', 0),
-        enrollment_count=data.get('enrollmentCount', 0),
-        popularity_score=data.get('popularityScore', 0)
-    )
-    
-    db.session.add(new_course)
-    db.session.commit()
-    
-    # Log the activity
-    action_type = 'course_create_teacher' if current_user.role == 'teacher' else 'course_create_admin'
-    log_activity = ActivityLog(
-        user_id=current_user.id,
-        action_type=action_type,
-        details=f"{current_user.role.capitalize()} created course: {new_course.title}"
-    )
-    db.session.add(log_activity)
-    db.session.commit()
-    
-    return jsonify(new_course.to_dict()), 201
+    try:
+        new_course = Course(
+            title=data['title'],
+            description=data.get('description', ''),
+            author=data.get('author', current_user.username),
+            image=data.get('image', ''),
+            rating=data.get('rating', 0.0),
+            duration=data.get('duration', ''),
+            price=data.get('price', ''),
+            category=data.get('category', ''),
+            view_count=data.get('viewCount', 0),
+            enrollment_count=data.get('enrollmentCount', 0),
+            popularity_score=data.get('popularityScore', 0)
+        )
+        
+        db.session.add(new_course)
+        db.session.commit()
+        
+        # Log the activity
+        action_type = 'course_create_teacher' if current_user.role == 'teacher' else 'course_create_admin'
+        log_activity = ActivityLog(
+            user_id=current_user.id,
+            action_type=action_type,
+            details=f"{current_user.role.capitalize()} created course: {new_course.title}"
+        )
+        db.session.add(log_activity)
+        db.session.commit()
+        
+        return jsonify(new_course.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Failed to create course: {str(e)}'}), 500
 
 @app.route('/api/admin/courses/<course_id>', methods=['PUT'])
 @token_required
@@ -765,43 +771,4 @@ def seed_data():
     ]
     
     # Create admin user
-    admin_exists = User.query.filter_by(email='mzoomolabewa@gmail.com').first()
-    if not admin_exists:
-        admin_user = User(
-            email='mzoomolabewa@gmail.com',
-            password=generate_password_hash('adminpassword'),  # Change this in production
-            username='Admin',
-            role='admin'
-        )
-        db.session.add(admin_user)
-    
-    # Add sample courses
-    for course_data in sample_courses:
-        # Check if course already exists
-        existing_course = Course.query.filter_by(title=course_data['title']).first()
-        if not existing_course:
-            new_course = Course(
-                title=course_data['title'],
-                description=course_data.get('description', f"Description for {course_data['title']}"),
-                author=course_data['author'],
-                image=course_data['image'],
-                rating=course_data['rating'],
-                duration=course_data['duration'],
-                price=course_data['price'],
-                category=course_data['category'],
-                view_count=course_data['view_count'],
-                enrollment_count=course_data['enrollment_count'],
-                popularity_score=course_data['popularity_score']
-            )
-            db.session.add(new_course)
-    
-    db.session.commit()
-    
-    return jsonify({'message': 'Sample data created successfully'}), 201
-
-# Create the database tables
-with app.app_context():
-    db.create_all()
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    admin_exists = User.query.filter_by(email='m

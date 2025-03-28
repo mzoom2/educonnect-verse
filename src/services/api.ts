@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -219,9 +220,13 @@ export const courseService = {
   // Course creation and management
   createCourse: async (courseData: any) => {
     try {
-      const response = await api.post('/courses', courseData);
+      console.log('Creating course with data:', courseData);
+      // Use the admin/courses endpoint for course creation
+      const response = await api.post('/admin/courses', courseData);
+      console.log('Course creation response:', response.data);
       return { data: response.data, error: null };
     } catch (error: any) {
+      console.error('Course creation error:', error);
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to create course' 

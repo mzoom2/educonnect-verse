@@ -1,5 +1,6 @@
+
 import { useCallback, useState, useEffect } from 'react';
-import api from './api';
+import api, { courseService as apiCourseService } from './api';
 import { useToast } from '@/hooks/use-toast';
 
 export interface CourseResource {
@@ -76,8 +77,11 @@ export interface CourseCreationData {
 // Function to fetch all courses from API
 export async function fetchCourses(): Promise<Course[]> {
   try {
-    const response = await api.get<Course[]>('/courses');
-    return response.data;
+    const response = await apiCourseService.getAllCourses();
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.data || [];
   } catch (error) {
     console.error('Error fetching courses:', error);
     throw error;
@@ -87,7 +91,10 @@ export async function fetchCourses(): Promise<Course[]> {
 // Function to fetch course by ID
 export async function fetchCourseById(id: string): Promise<Course> {
   try {
-    const response = await api.get<Course>(`/courses/${id}`);
+    const response = await apiCourseService.getCourseById(id);
+    if (response.error) {
+      throw new Error(response.error);
+    }
     return response.data;
   } catch (error) {
     console.error(`Error fetching course ${id}:`, error);
@@ -98,8 +105,11 @@ export async function fetchCourseById(id: string): Promise<Course> {
 // Function to search courses
 export async function searchCourses(query: string): Promise<Course[]> {
   try {
-    const response = await api.get<Course[]>(`/courses/search?q=${encodeURIComponent(query)}`);
-    return response.data;
+    const response = await apiCourseService.searchCourses(query);
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.data || [];
   } catch (error) {
     console.error(`Error searching courses with query ${query}:`, error);
     throw error;
@@ -109,8 +119,11 @@ export async function searchCourses(query: string): Promise<Course[]> {
 // Function to get courses by category
 export async function fetchCoursesByCategory(category: string): Promise<Course[]> {
   try {
-    const response = await api.get<Course[]>(`/courses/category/${encodeURIComponent(category)}`);
-    return response.data;
+    const response = await apiCourseService.getCoursesByCategory(category);
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.data || [];
   } catch (error) {
     console.error(`Error fetching courses in category ${category}:`, error);
     throw error;
@@ -158,7 +171,11 @@ export async function uploadCourseResource(
 // Function to create a new course
 export async function createCourse(courseData: CourseCreationData): Promise<Course> {
   try {
-    const response = await api.post<Course>('/courses', courseData);
+    console.log('Creating course with data in courseService:', courseData);
+    const response = await apiCourseService.createCourse(courseData);
+    if (response.error) {
+      throw new Error(response.error);
+    }
     return response.data;
   } catch (error) {
     console.error('Error creating course:', error);
@@ -169,7 +186,11 @@ export async function createCourse(courseData: CourseCreationData): Promise<Cour
 // Function to save course as draft
 export async function saveCourseAsDraft(courseData: Partial<CourseCreationData>): Promise<Course> {
   try {
-    const response = await api.post<Course>('/courses/draft', courseData);
+    const draftData = { ...courseData, isDraft: true };
+    const response = await apiCourseService.createCourse(draftData);
+    if (response.error) {
+      throw new Error(response.error);
+    }
     return response.data;
   } catch (error) {
     console.error('Error saving course as draft:', error);
