@@ -2,8 +2,14 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
+import { Course } from '@/services/courseService';
 
-const CourseCarousel = () => {
+interface CourseCarouselProps {
+  customCourses?: Course[];
+  isLoading?: boolean;
+}
+
+const CourseCarousel = ({ customCourses, isLoading = false }: CourseCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -45,8 +51,10 @@ const CourseCarousel = () => {
     }
   };
   
+  // Default courses to show
   const courses = [
     {
+      id: '1',
       image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Introduction to Machine Learning with Python",
       author: "Dr. Sarah Johnson",
@@ -56,6 +64,7 @@ const CourseCarousel = () => {
       category: "Data Science"
     },
     {
+      id: '2',
       image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
       title: "Modern Web Development: React & Node.js",
       author: "Michael Chen",
@@ -65,6 +74,7 @@ const CourseCarousel = () => {
       category: "Programming"
     },
     {
+      id: '3',
       image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Fundamentals of UI/UX Design",
       author: "Emma Thompson",
@@ -74,6 +84,7 @@ const CourseCarousel = () => {
       category: "Design"
     },
     {
+      id: '4',
       image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Digital Marketing Fundamentals",
       author: "Jessica Adams",
@@ -83,6 +94,7 @@ const CourseCarousel = () => {
       category: "Marketing"
     },
     {
+      id: '5',
       image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Financial Planning & Investment Strategies",
       author: "Robert Williams",
@@ -92,6 +104,7 @@ const CourseCarousel = () => {
       category: "Finance"
     },
     {
+      id: '6',
       image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
       title: "Data Analytics for Business Decision-Making",
       author: "Daniel Morgan",
@@ -101,6 +114,9 @@ const CourseCarousel = () => {
       category: "Business"
     }
   ];
+
+  // Determine which courses to display
+  const displayCourses = isLoading ? [] : (customCourses && customCourses.length > 0 ? customCourses : courses);
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">
@@ -139,22 +155,34 @@ const CourseCarousel = () => {
           </div>
         </div>
         
-        <div 
-          className="overflow-x-auto scrollbar-hide pb-8 -mx-4 px-4"
-          ref={carouselRef}
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          <div className="flex space-x-6" style={{ minWidth: 'min-content' }}>
-            {courses.map((course, index) => (
-              <div 
-                key={index} 
-                className="min-w-[300px] max-w-[300px] sm:min-w-[320px] sm:max-w-[320px]"
-              >
-                <CourseCard {...course} />
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-3">
+                <div className="aspect-video w-full bg-muted rounded-md"></div>
+                <div className="h-4 w-3/4 bg-muted rounded"></div>
+                <div className="h-3 w-1/2 bg-muted rounded"></div>
               </div>
             ))}
           </div>
-        </div>
+        ) : (
+          <div 
+            className="overflow-x-auto scrollbar-hide pb-8 -mx-4 px-4"
+            ref={carouselRef}
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <div className="flex space-x-6" style={{ minWidth: 'min-content' }}>
+              {displayCourses.map((course, index) => (
+                <div 
+                  key={course.id || index} 
+                  className="min-w-[300px] max-w-[300px] sm:min-w-[320px] sm:max-w-[320px]"
+                >
+                  <CourseCard {...course} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="mt-10 text-center">
           <a href="/courses" className="btn-primary px-6 py-3 text-base">

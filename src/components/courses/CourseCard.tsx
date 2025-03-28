@@ -1,9 +1,12 @@
 
 import React from 'react';
-import { Clock, User, Star, BookOpen } from 'lucide-react';
+import { Clock, User, Star, BookOpen, FileText } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CourseResource } from '@/services/courseService';
 
 interface CourseCardProps {
+  id?: string;
   image: string;
   title: string;
   author: string;
@@ -11,16 +14,19 @@ interface CourseCardProps {
   duration: string;
   price: string;
   category: string;
+  resources?: CourseResource[];
 }
 
 const CourseCard = ({ 
+  id,
   image, 
   title, 
   author, 
   rating, 
   duration, 
   price, 
-  category 
+  category,
+  resources
 }: CourseCardProps) => {
   return (
     <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group h-full">
@@ -54,6 +60,45 @@ const CourseCard = ({
             <span>{rating.toFixed(1)}</span>
           </div>
         </div>
+        
+        {resources && resources.length > 0 && (
+          <div className="flex items-center flex-wrap gap-1 mt-2 mb-3">
+            <TooltipProvider>
+              {resources.slice(0, 3).map((resource, idx) => (
+                <Tooltip key={idx}>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center bg-secondary/50 text-xs rounded-md px-2 py-1">
+                      <FileText size={12} className="mr-1 text-edu-purple" />
+                      {resource.name.length > 10 ? resource.name.substring(0, 10) + '...' : resource.name}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{resource.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+              {resources.length > 3 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center bg-secondary/50 text-xs rounded-md px-2 py-1">
+                      +{resources.length - 3} more
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="max-w-xs">
+                      <p className="mb-1 font-medium">Additional resources:</p>
+                      <ul className="text-xs">
+                        {resources.slice(3).map((resource, idx) => (
+                          <li key={idx}>{resource.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
+          </div>
+        )}
         
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
           <div className="flex items-center text-sm text-muted-foreground">

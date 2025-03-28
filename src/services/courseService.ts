@@ -1,7 +1,7 @@
-
 import { courseService } from './api';
 import { useState, useEffect } from 'react';
 import { useApi } from '@/hooks/useApi';
+import { useToast } from '@/hooks/use-toast';
 
 // Interface for Course Quiz Question
 export interface QuizQuestion {
@@ -30,6 +30,16 @@ export interface CourseLesson {
   practicalTask?: PracticalTask;
 }
 
+// Interface for Course Resource
+export interface CourseResource {
+  id?: string;
+  name: string;
+  type: 'video' | 'pdf' | 'image' | 'other';
+  url: string;
+  size?: number;
+  uploadedAt?: string;
+}
+
 // Interface for Course Creation
 export interface CourseCreationData {
   title: string;
@@ -42,7 +52,26 @@ export interface CourseCreationData {
   price: number;
   duration: number;
   lessons: CourseLesson[];
+  resources?: CourseResource[];
   isDraft: boolean;
+}
+
+// Interface for Course
+export interface Course {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  author: string;
+  image: string;
+  rating: number;
+  duration: string;
+  price: string;
+  enrollmentCount?: number;
+  viewCount?: number;
+  popularityScore?: number;
+  createdAt?: string;
+  resources?: CourseResource[];
 }
 
 // Create a new course
@@ -68,12 +97,13 @@ export const saveCourseAsDraft = async (courseData: CourseCreationData) => {
   }
 };
 
-// Upload course media (video, PDF, image)
-export const uploadCourseMedia = async (file: File, type: 'video' | 'pdf' | 'image') => {
+// Upload course resource (video, PDF, image) to the upload folder
+export const uploadCourseResource = async (file: File, type: 'video' | 'pdf' | 'image' | 'other') => {
   try {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
+    formData.append('folder', 'course-resources'); // Specify the folder to upload to
 
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload`, {
       method: 'POST',
@@ -88,157 +118,266 @@ export const uploadCourseMedia = async (file: File, type: 'video' | 'pdf' | 'ima
     }
 
     const data = await response.json();
-    return data.fileUrl;
+    
+    // Return resource metadata to be stored in the database
+    return {
+      name: file.name,
+      type,
+      url: data.fileUrl,
+      size: file.size,
+      uploadedAt: new Date().toISOString()
+    } as CourseResource;
   } catch (error) {
     console.error(`Error uploading ${type}:`, error);
     throw error;
   }
 };
 
+// Upload course media (alias for backward compatibility)
+export const uploadCourseMedia = uploadCourseResource;
+
 // Add custom hooks for courses
 export const useAllCourses = () => {
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate API call for now
-    setLoading(true);
-    setTimeout(() => {
-      // This is mock data until we have a real API
-      const mockCourses = [
-        {
-          id: '1',
-          title: 'Introduction to JavaScript',
-          description: 'Learn the basics of JavaScript programming',
-          category: 'Programming',
-          difficulty: 'Beginner',
-          author: 'John Doe',
-          image: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-          rating: 4.7,
-          duration: '4 weeks',
-          price: '₦5,000',
-          enrollmentCount: 328,
-          viewCount: 1450,
-          popularityScore: 87,
-          createdAt: '2023-05-15',
-        },
-        {
-          id: '2',
-          title: 'Web Development Masterclass',
-          description: 'Complete guide to modern web development',
-          category: 'Web Development',
-          difficulty: 'Intermediate',
-          author: 'Sarah Johnson',
-          image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80',
-          rating: 4.9,
-          duration: '8 weeks',
-          price: '₦12,000',
-          enrollmentCount: 215,
-          viewCount: 980,
-          popularityScore: 92,
-          createdAt: '2023-06-10',
-        },
-        {
-          id: '3',
-          title: 'Data Science Fundamentals',
-          description: 'Introduction to data science concepts and tools',
-          category: 'Data Science',
-          difficulty: 'Intermediate',
-          author: 'Michael Brown',
-          image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-          rating: 4.6,
-          duration: '6 weeks',
-          price: '₦8,500',
-          enrollmentCount: 189,
-          viewCount: 760,
-          popularityScore: 78,
-          createdAt: '2023-05-20',
-        },
-        {
-          id: '4',
-          title: 'Mobile App Development with React Native',
-          description: 'Build cross-platform mobile applications',
-          category: 'Mobile Development',
-          difficulty: 'Advanced',
-          author: 'Emily Chen',
-          image: 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-          rating: 4.8,
-          duration: '10 weeks',
-          price: '₦15,000',
-          enrollmentCount: 142,
-          viewCount: 620,
-          popularityScore: 85,
-          createdAt: '2023-07-05',
-        },
-        {
-          id: '5',
-          title: 'Business Finance for Beginners',
-          description: 'Learn essential financial concepts for business',
-          category: 'Business',
-          difficulty: 'Beginner',
-          author: 'Robert Wilson',
-          image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2015&q=80',
-          rating: 4.5,
-          duration: '3 weeks',
-          price: '₦6,000',
-          enrollmentCount: 274,
-          viewCount: 1120,
-          popularityScore: 76,
-          createdAt: '2023-04-18',
-        },
-        {
-          id: '6',
-          title: 'UI/UX Design Principles',
-          description: 'Master the art of user interface design',
-          category: 'Design',
-          difficulty: 'Intermediate',
-          author: 'Jennifer Lee',
-          image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2064&q=80',
-          rating: 4.7,
-          duration: '5 weeks',
-          price: '₦7,500',
-          enrollmentCount: 198,
-          viewCount: 840,
-          popularityScore: 82,
-          createdAt: '2023-06-28',
-        },
-        {
-          id: '7',
-          title: 'Digital Marketing Essentials',
-          description: 'Comprehensive guide to modern marketing strategies',
-          category: 'Marketing',
-          difficulty: 'Beginner',
-          author: 'David Clark',
-          image: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80',
-          rating: 4.6,
-          duration: '4 weeks',
-          price: '₦6,500',
-          enrollmentCount: 231,
-          viewCount: 920,
-          popularityScore: 79,
-          createdAt: '2023-05-30',
-        },
-        {
-          id: '8',
-          title: 'Machine Learning Foundations',
-          description: 'Introduction to machine learning concepts and algorithms',
-          category: 'Data Science',
-          difficulty: 'Advanced',
-          author: 'Alex Rogers',
-          image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-          rating: 4.9,
-          duration: '12 weeks',
-          price: '₦20,000',
-          enrollmentCount: 127,
-          viewCount: 580,
-          popularityScore: 90,
-          createdAt: '2023-07-15',
+    const fetchCourses = async () => {
+      setLoading(true);
+      try {
+        // Try to fetch from the real API first
+        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/courses`, {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCourses(data);
+        } else {
+          // Fallback to mock data if the API request fails
+          setTimeout(() => {
+            const mockCourses = [
+              {
+                id: '1',
+                title: 'Introduction to JavaScript',
+                description: 'Learn the basics of JavaScript programming',
+                category: 'Programming',
+                difficulty: 'Beginner',
+                author: 'John Doe',
+                image: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                rating: 4.7,
+                duration: '4 weeks',
+                price: '₦5,000',
+                enrollmentCount: 328,
+                viewCount: 1450,
+                popularityScore: 87,
+                createdAt: '2023-05-15',
+              },
+              {
+                id: '2',
+                title: 'Web Development Masterclass',
+                description: 'Complete guide to modern web development',
+                category: 'Web Development',
+                difficulty: 'Intermediate',
+                author: 'Sarah Johnson',
+                image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80',
+                rating: 4.9,
+                duration: '8 weeks',
+                price: '₦12,000',
+                enrollmentCount: 215,
+                viewCount: 980,
+                popularityScore: 92,
+                createdAt: '2023-06-10',
+              },
+              {
+                id: '3',
+                title: 'Data Science Fundamentals',
+                description: 'Introduction to data science concepts and tools',
+                category: 'Data Science',
+                difficulty: 'Intermediate',
+                author: 'Michael Brown',
+                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                rating: 4.6,
+                duration: '6 weeks',
+                price: '₦8,500',
+                enrollmentCount: 189,
+                viewCount: 760,
+                popularityScore: 78,
+                createdAt: '2023-05-20',
+              },
+              {
+                id: '4',
+                title: 'Mobile App Development with React Native',
+                description: 'Build cross-platform mobile applications',
+                category: 'Mobile Development',
+                difficulty: 'Advanced',
+                author: 'Emily Chen',
+                image: 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                rating: 4.8,
+                duration: '10 weeks',
+                price: '₦15,000',
+                enrollmentCount: 142,
+                viewCount: 620,
+                popularityScore: 85,
+                createdAt: '2023-07-05',
+              },
+              {
+                id: '5',
+                title: 'Business Finance for Beginners',
+                description: 'Learn essential financial concepts for business',
+                category: 'Business',
+                difficulty: 'Beginner',
+                author: 'Robert Wilson',
+                image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2015&q=80',
+                rating: 4.5,
+                duration: '3 weeks',
+                price: '₦6,000',
+                enrollmentCount: 274,
+                viewCount: 1120,
+                popularityScore: 76,
+                createdAt: '2023-04-18',
+              },
+              {
+                id: '6',
+                title: 'UI/UX Design Principles',
+                description: 'Master the art of user interface design',
+                category: 'Design',
+                difficulty: 'Intermediate',
+                author: 'Jennifer Lee',
+                image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2064&q=80',
+                rating: 4.7,
+                duration: '5 weeks',
+                price: '₦7,500',
+                enrollmentCount: 198,
+                viewCount: 840,
+                popularityScore: 82,
+                createdAt: '2023-06-28',
+              },
+              {
+                id: '7',
+                title: 'Digital Marketing Essentials',
+                description: 'Comprehensive guide to modern marketing strategies',
+                category: 'Marketing',
+                difficulty: 'Beginner',
+                author: 'David Clark',
+                image: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80',
+                rating: 4.6,
+                duration: '4 weeks',
+                price: '₦6,500',
+                enrollmentCount: 231,
+                viewCount: 920,
+                popularityScore: 79,
+                createdAt: '2023-05-30',
+              },
+              {
+                id: '8',
+                title: 'Machine Learning Foundations',
+                description: 'Introduction to machine learning concepts and algorithms',
+                category: 'Data Science',
+                difficulty: 'Advanced',
+                author: 'Alex Rogers',
+                image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                rating: 4.9,
+                duration: '12 weeks',
+                price: '₦20,000',
+                enrollmentCount: 127,
+                viewCount: 580,
+                popularityScore: 90,
+                createdAt: '2023-07-15',
+              }
+            ];
+            setCourses(mockCourses);
+          }, 1000);
         }
-      ];
-      setCourses(mockCourses);
-      setLoading(false);
-    }, 1000);
-  }, []);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load courses. Using sample data instead.",
+          variant: "destructive",
+        });
+        
+        // Fallback to mock data
+        setTimeout(() => {
+          const mockCourses = [
+            {
+              id: '1',
+              title: 'Introduction to JavaScript',
+              description: 'Learn the basics of JavaScript programming',
+              category: 'Programming',
+              difficulty: 'Beginner',
+              author: 'John Doe',
+              image: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+              rating: 4.7,
+              duration: '4 weeks',
+              price: '₦5,000',
+              enrollmentCount: 328,
+              viewCount: 1450,
+              popularityScore: 87,
+              createdAt: '2023-05-15',
+            },
+            {
+              id: '2',
+              title: 'Web Development Masterclass',
+              description: 'Complete guide to modern web development',
+              category: 'Web Development',
+              difficulty: 'Intermediate',
+              author: 'Sarah Johnson',
+              image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80',
+              rating: 4.9,
+              duration: '8 weeks',
+              price: '₦12,000',
+              enrollmentCount: 215,
+              viewCount: 980,
+              popularityScore: 92,
+              createdAt: '2023-06-10',
+            },
+            {
+              id: '3',
+              title: 'Data Science Fundamentals',
+              description: 'Introduction to data science concepts and tools',
+              category: 'Data Science',
+              difficulty: 'Intermediate',
+              author: 'Michael Brown',
+              image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+              rating: 4.6,
+              duration: '6 weeks',
+              price: '₦8,500',
+              enrollmentCount: 189,
+              viewCount: 760,
+              popularityScore: 78,
+              createdAt: '2023-05-20',
+            },
+            {
+              id: '4',
+              title: 'Mobile App Development with React Native',
+              description: 'Build cross-platform mobile applications',
+              category: 'Mobile Development',
+              difficulty: 'Advanced',
+              author: 'Emily Chen',
+              image: 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+              rating: 4.8,
+              duration: '10 weeks',
+              price: '₦15,000',
+              enrollmentCount: 142,
+              viewCount: 620,
+              popularityScore: 85,
+              createdAt: '2023-07-05',
+            }
+          ];
+          setCourses(mockCourses);
+          setLoading(false);
+        }, 1000);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [toast]);
 
   return { courses, loading };
 };

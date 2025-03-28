@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -6,9 +6,11 @@ import os
 import datetime
 import logging
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
+import uuid
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -30,6 +32,16 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Configure upload folder
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+COURSE_RESOURCES_FOLDER = os.path.join(UPLOAD_FOLDER, 'course-resources')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
+
+# Create upload directories if they don't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(COURSE_RESOURCES_FOLDER, exist_ok=True)
 
 # Initialize SQLAlchemy with app
 db = SQLAlchemy(model_class=Base)
@@ -74,6 +86,7 @@ class Course(db.Model):
     popularity_score = db.Column(db.Integer, default=0)
     
     def to_dict(self):
+        resources = CourseResource.query.filter_by(course_id=self.id).all()
         return {
             'id': str(self.id),
             'title': self.title,
@@ -87,7 +100,28 @@ class Course(db.Model):
             'createdAt': self.created_at.isoformat(),
             'viewCount': self.view_count,
             'enrollmentCount': self.enrollment_count,
-            'popularityScore': self.popularity_score
+            'popularityScore': self.popularity_score,
+            'resources': [resource.to_dict() for resource in resources] if resources else []
+        }
+
+# Define Course Resource model for storing uploaded files info
+class CourseResource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
+    name = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # 'video', 'pdf', 'image', 'other'
+    url = db.Column(db.String(255), nullable=False)
+    size = db.Column(db.Integer)  # file size in bytes
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'type': self.type,
+            'url': self.url,
+            'size': self.size,
+            'uploadedAt': self.created_at.isoformat()
         }
 
 # Define activity log model for tracking user activities
@@ -298,6 +332,79 @@ def apply_as_teacher(current_user, user_id):
         logger.error(f"Error submitting teacher application: {str(e)}")
         return jsonify({'message': f'Error submitting application: {str(e)}'}), 500
 
+# File upload route
+@app.route('/api/upload', methods=['POST'])
+@token_required
+def upload_file(current_user):
+    try:
+        # Check if file is included in the request
+        if 'file' not in request.files:
+            return jsonify({'message': 'No file part'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'message': 'No selected file'}), 400
+        
+        # Get type and folder from form data
+        file_type = request.form.get('type', 'other')
+        folder = request.form.get('folder', 'general')
+        course_id = request.form.get('course_id')
+        
+        # Create folder path
+        folder_path = os.path.join(app.config['UPLOAD_FOLDER'], folder)
+        os.makedirs(folder_path, exist_ok=True)
+        
+        # Generate a unique filename to avoid collisions
+        original_filename = secure_filename(file.filename)
+        file_extension = os.path.splitext(original_filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        
+        # Save the file
+        file_path = os.path.join(folder_path, unique_filename)
+        file.save(file_path)
+        
+        # Create relative URL path for the file
+        file_url = f"/uploads/{folder}/{unique_filename}"
+        
+        # Add record to the database if this is a course resource
+        if course_id and course_id.isdigit():
+            course = Course.query.get(int(course_id))
+            if course:
+                resource = CourseResource(
+                    course_id=int(course_id),
+                    name=original_filename,
+                    type=file_type,
+                    url=file_url,
+                    size=os.path.getsize(file_path)
+                )
+                db.session.add(resource)
+                db.session.commit()
+        
+        # Log the activity
+        log_activity = ActivityLog(
+            user_id=current_user.id,
+            action_type='file_upload',
+            details=f"User uploaded file: {original_filename}"
+        )
+        db.session.add(log_activity)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'File uploaded successfully',
+            'fileUrl': file_url,
+            'originalName': original_filename,
+            'type': file_type
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Error uploading file: {str(e)}")
+        return jsonify({'message': f'Error uploading file: {str(e)}'}), 500
+
+# Serve uploaded files
+@app.route('/uploads/<path:folder>/<filename>')
+def serve_file(folder, filename):
+    return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], folder), filename)
+
 # Routes for courses
 @app.route('/api/courses', methods=['GET'])
 def get_all_courses():
@@ -355,6 +462,40 @@ def search_courses():
     ).all()
     
     return jsonify([course.to_dict() for course in courses]), 200
+
+# Add course resources endpoint
+@app.route('/api/courses/<course_id>/resources', methods=['GET'])
+def get_course_resources(course_id):
+    resources = CourseResource.query.filter_by(course_id=course_id).all()
+    return jsonify([resource.to_dict() for resource in resources]), 200
+
+@app.route('/api/courses/<course_id>/resources', methods=['POST'])
+@token_required
+def add_course_resource(current_user, course_id):
+    # Ensure the user has permission (teacher or admin)
+    if current_user.role not in ['teacher', 'admin']:
+        return jsonify({'message': 'Unauthorized to add resources'}), 403
+    
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'message': 'Course not found'}), 404
+    
+    data = request.get_json()
+    if not data or not all(k in data for k in ('name', 'type', 'url')):
+        return jsonify({'message': 'Missing required fields'}), 400
+    
+    resource = CourseResource(
+        course_id=int(course_id),
+        name=data['name'],
+        type=data['type'],
+        url=data['url'],
+        size=data.get('size', 0)
+    )
+    
+    db.session.add(resource)
+    db.session.commit()
+    
+    return jsonify(resource.to_dict()), 201
 
 # Admin-only routes
 @app.route('/api/admin/courses', methods=['POST'])
@@ -641,22 +782,3 @@ def seed_data():
                 author=course_data['author'],
                 image=course_data['image'],
                 rating=course_data['rating'],
-                duration=course_data['duration'],
-                price=course_data['price'],
-                category=course_data['category'],
-                view_count=course_data.get('view_count', 0),
-                enrollment_count=course_data.get('enrollment_count', 0),
-                popularity_score=course_data.get('popularity_score', 0)
-            )
-            db.session.add(new_course)
-    
-    db.session.commit()
-    
-    return jsonify({'message': 'Database seeded successfully'}), 200
-
-# Replace the deprecated before_first_request with a different approach
-with app.app_context():
-    db.create_all()
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
