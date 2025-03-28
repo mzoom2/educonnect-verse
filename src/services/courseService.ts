@@ -64,6 +64,7 @@ export interface CourseCreationData {
   category: string;
   price: string;
   duration: string;
+  author?: string; // Add author field as it's required by the backend
   image: string;
   lessons: CourseLesson[];
   difficulty?: string;
@@ -158,10 +159,27 @@ export async function uploadCourseResource(
 // Function to create a new course
 export async function createCourse(courseData: CourseCreationData): Promise<Course> {
   try {
-    const response = await api.post<Course>('/courses', courseData);
+    console.log('Creating course with data:', courseData);
+    
+    // Make sure author is present as it's required by backend
+    if (!courseData.author) {
+      // Try to get the current username if available
+      try {
+        const userResponse = await api.get('/auth/current-user');
+        courseData.author = userResponse.data.user.username || 'Unknown Author';
+      } catch (err) {
+        console.error('Error fetching current user for author:', err);
+        courseData.author = 'Unknown Author';
+      }
+    }
+    
+    const response = await api.post<Course>('/admin/courses', courseData);
+    console.log('Course creation successful, response:', response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating course:', error);
+    console.error('Error response data:', error.response?.data);
+    console.error('Request data sent:', courseData);
     throw error;
   }
 }

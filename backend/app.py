@@ -502,43 +502,64 @@ def add_course_resource(current_user, course_id):
 @app.route('/api/admin/courses', methods=['POST'])
 @token_required
 def add_course(current_user):
+    # Log everything for debugging
+    logger.debug(f"Add course request from user {current_user.id} with role {current_user.role}")
+    logger.debug(f"Request data: {request.get_json()}")
+
     if current_user.role != 'admin' and current_user.role != 'teacher':
+        logger.debug(f"Unauthorized: user role is {current_user.role}")
         return jsonify({'message': 'Admin or teacher access required'}), 403
     
     data = request.get_json()
     
     # Validate input data
-    if not data or not data.get('title') or not data.get('author'):
-        return jsonify({'message': 'Missing required fields'}), 400
+    if not data:
+        logger.debug("No data provided")
+        return jsonify({'message': 'No data provided'}), 400
+        
+    if not data.get('title'):
+        logger.debug("Missing title")
+        return jsonify({'message': 'Missing title field'}), 400
+        
+    if not data.get('author'):
+        logger.debug("Missing author")
+        return jsonify({'message': 'Missing author field'}), 400
     
-    new_course = Course(
-        title=data['title'],
-        description=data.get('description', ''),
-        author=data['author'],
-        image=data.get('image', ''),
-        rating=data.get('rating', 0.0),
-        duration=data.get('duration', ''),
-        price=data.get('price', ''),
-        category=data.get('category', ''),
-        view_count=data.get('viewCount', 0),
-        enrollment_count=data.get('enrollmentCount', 0),
-        popularity_score=data.get('popularityScore', 0)
-    )
+    try:
+        new_course = Course(
+            title=data['title'],
+            description=data.get('description', ''),
+            author=data['author'],
+            image=data.get('image', ''),
+            rating=data.get('rating', 0.0),
+            duration=data.get('duration', ''),
+            price=data.get('price', ''),
+            category=data.get('category', ''),
+            view_count=data.get('viewCount', 0),
+            enrollment_count=data.get('enrollmentCount', 0),
+            popularity_score=data.get('popularityScore', 0)
+        )
+        
+        db.session.add(new_course)
+        db.session.commit()
+        
+        # Log the activity
+        action_type = 'course_create_teacher' if current_user.role == 'teacher' else 'course_create_admin'
+        log_activity = ActivityLog(
+            user_id=current_user.id,
+            action_type=action_type,
+            details=f"{current_user.role.capitalize()} created course: {new_course.title}"
+        )
+        db.session.add(log_activity)
+        db.session.commit()
+        
+        logger.debug(f"Course created successfully: {new_course.to_dict()}")
+        return jsonify(new_course.to_dict()), 201
     
-    db.session.add(new_course)
-    db.session.commit()
-    
-    # Log the activity
-    action_type = 'course_create_teacher' if current_user.role == 'teacher' else 'course_create_admin'
-    log_activity = ActivityLog(
-        user_id=current_user.id,
-        action_type=action_type,
-        details=f"{current_user.role.capitalize()} created course: {new_course.title}"
-    )
-    db.session.add(log_activity)
-    db.session.commit()
-    
-    return jsonify(new_course.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating course: {str(e)}")
+        return jsonify({'message': f'Error creating course: {str(e)}'}), 500
 
 @app.route('/api/admin/courses/<course_id>', methods=['PUT'])
 @token_required

@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -19,6 +20,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`, config.data);
     return config;
   },
   (error) => {
@@ -30,6 +32,7 @@ api.interceptors.request.use(
 // Add a response interceptor to handle common errors
 api.interceptors.response.use(
   (response) => {
+    console.log(`Response from ${response.config.url}:`, response.data);
     return response;
   },
   (error) => {
