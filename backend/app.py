@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -501,8 +502,8 @@ def add_course_resource(current_user, course_id):
 @app.route('/api/admin/courses', methods=['POST'])
 @token_required
 def add_course(current_user):
-    if current_user.role != 'admin':
-        return jsonify({'message': 'Admin access required'}), 403
+    if current_user.role != 'admin' and current_user.role != 'teacher':
+        return jsonify({'message': 'Admin or teacher access required'}), 403
     
     data = request.get_json()
     
@@ -528,10 +529,11 @@ def add_course(current_user):
     db.session.commit()
     
     # Log the activity
+    action_type = 'course_create_teacher' if current_user.role == 'teacher' else 'course_create_admin'
     log_activity = ActivityLog(
         user_id=current_user.id,
-        action_type='course_create',
-        details=f"Admin created course: {new_course.title}"
+        action_type=action_type,
+        details=f"{current_user.role.capitalize()} created course: {new_course.title}"
     )
     db.session.add(log_activity)
     db.session.commit()
@@ -541,8 +543,8 @@ def add_course(current_user):
 @app.route('/api/admin/courses/<course_id>', methods=['PUT'])
 @token_required
 def update_course(current_user, course_id):
-    if current_user.role != 'admin':
-        return jsonify({'message': 'Admin access required'}), 403
+    if current_user.role != 'admin' and current_user.role != 'teacher':
+        return jsonify({'message': 'Admin or teacher access required'}), 403
     
     course = Course.query.get(course_id)
     if not course:
@@ -571,10 +573,11 @@ def update_course(current_user, course_id):
     db.session.commit()
     
     # Log the activity
+    action_type = 'course_update_teacher' if current_user.role == 'teacher' else 'course_update_admin'
     log_activity = ActivityLog(
         user_id=current_user.id,
-        action_type='course_update',
-        details=f"Admin updated course: {course.title}"
+        action_type=action_type,
+        details=f"{current_user.role.capitalize()} updated course: {course.title}"
     )
     db.session.add(log_activity)
     db.session.commit()
@@ -584,8 +587,8 @@ def update_course(current_user, course_id):
 @app.route('/api/admin/courses/<course_id>', methods=['DELETE'])
 @token_required
 def delete_course(current_user, course_id):
-    if current_user.role != 'admin':
-        return jsonify({'message': 'Admin access required'}), 403
+    if current_user.role != 'admin' and current_user.role != 'teacher':
+        return jsonify({'message': 'Admin or teacher access required'}), 403
     
     course = Course.query.get(course_id)
     if not course:
@@ -596,10 +599,11 @@ def delete_course(current_user, course_id):
     db.session.commit()
     
     # Log the activity
+    action_type = 'course_delete_teacher' if current_user.role == 'teacher' else 'course_delete_admin'
     log_activity = ActivityLog(
         user_id=current_user.id,
-        action_type='course_delete',
-        details=f"Admin deleted course: {course_title}"
+        action_type=action_type,
+        details=f"{current_user.role.capitalize()} deleted course: {course_title}"
     )
     db.session.add(log_activity)
     db.session.commit()
@@ -782,3 +786,22 @@ def seed_data():
                 author=course_data['author'],
                 image=course_data['image'],
                 rating=course_data['rating'],
+                duration=course_data['duration'],
+                price=course_data['price'],
+                category=course_data['category'],
+                view_count=course_data['view_count'],
+                enrollment_count=course_data['enrollment_count'],
+                popularity_score=course_data['popularity_score']
+            )
+            db.session.add(new_course)
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Sample data created successfully'}), 201
+
+# Create the database tables
+with app.app_context():
+    db.create_all()
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
