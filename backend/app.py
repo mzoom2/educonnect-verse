@@ -350,15 +350,38 @@ def upload_file(current_user):
         file_type = request.form.get('type', 'other')
         folder = request.form.get('folder', 'general')
         course_id = request.form.get('course_id')
+        course_title = request.form.get('course_title', '')
         
         # Create folder path
         folder_path = os.path.join(app.config['UPLOAD_FOLDER'], folder)
         os.makedirs(folder_path, exist_ok=True)
         
-        # Generate a unique filename to avoid collisions
+        # Generate a descriptive filename that's still unique
         original_filename = secure_filename(file.filename)
         file_extension = os.path.splitext(original_filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        
+        # Create a sanitized username and course title for the filename
+        username_part = secure_filename(current_user.username or 'user').lower()[:20]
+        course_part = ''
+        if course_title:
+            course_part = secure_filename(course_title).lower()[:30]
+        elif course_id and course_id.isdigit():
+            course = Course.query.get(int(course_id))
+            if course:
+                course_part = secure_filename(course.title).lower()[:30]
+        
+        # Replace spaces with underscores for all parts
+        username_part = username_part.replace(' ', '_')
+        course_part = course_part.replace(' ', '_')
+        
+        # Create unique descriptive filename
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        random_suffix = uuid.uuid4().hex[:8]  # 8 chars from UUID for uniqueness
+        
+        if course_part:
+            unique_filename = f"{username_part}_{course_part}_{timestamp}_{random_suffix}{file_extension}"
+        else:
+            unique_filename = f"{username_part}_{timestamp}_{random_suffix}{file_extension}"
         
         # Save the file
         file_path = os.path.join(folder_path, unique_filename)

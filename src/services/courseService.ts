@@ -269,13 +269,17 @@ export async function saveCourseAsDraft(courseData: Partial<CourseCreationData>)
 }
 
 // Function to upload course media (image, video, etc.)
-export async function uploadCourseMedia(file: File, courseId?: string): Promise<string> {
+export async function uploadCourseMedia(file: File, courseTitle?: string, courseId?: string): Promise<string> {
   try {
     const formData = new FormData();
     formData.append('file', file);
     
     if (courseId) {
       formData.append('course_id', courseId);
+    }
+    
+    if (courseTitle) {
+      formData.append('course_title', courseTitle);
     }
     
     formData.append('folder', 'course-media');
