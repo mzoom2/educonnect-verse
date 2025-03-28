@@ -17,17 +17,14 @@ export type Course = {
   viewCount?: number;
   enrollmentCount?: number;
   popularityScore?: number;
-  resourceUrl?: string; // Added for teacher uploaded resources
 };
 
 interface CourseCarouselProps {
-  title?: string;
   courses: Course[];
   emptyMessage?: string;
-  loading?: boolean;
 }
 
-const CourseCarousel = ({ title, courses, emptyMessage = "No courses available", loading = false }: CourseCarouselProps) => {
+const CourseCarousel = ({ courses, emptyMessage = "No courses available" }: CourseCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -54,7 +51,7 @@ const CourseCarousel = ({ title, courses, emptyMessage = "No courses available",
       }
       window.removeEventListener('resize', updateScrollButtons);
     };
-  }, [courses]);
+  }, []);
   
   const scroll = (direction: 'left' | 'right') => {
     if (!carouselRef.current) return;
@@ -69,69 +66,52 @@ const CourseCarousel = ({ title, courses, emptyMessage = "No courses available",
     }
   };
 
-  if (loading) {
+  if (courses.length === 0) {
     return (
-      <div className="space-y-4">
-        {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
-        <div className="bg-secondary/30 rounded-lg p-10 text-center">
-          <p className="text-muted-foreground">Loading courses...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!courses || courses.length === 0) {
-    return (
-      <div className="space-y-4">
-        {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
-        <div className="bg-secondary/30 rounded-lg p-10 text-center">
-          <p className="text-muted-foreground">{emptyMessage}</p>
-        </div>
+      <div className="bg-secondary/30 rounded-lg p-10 text-center">
+        <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
-      <div className="relative group">
-        {/* Scroll Buttons */}
-        {canScrollLeft && (
-          <button
-            onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/90 shadow-md rounded-full p-2 opacity-90 hover:opacity-100 transform -translate-x-1/2"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft size={20} />
-          </button>
-        )}
-        
-        {canScrollRight && (
-          <button
-            onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/90 shadow-md rounded-full p-2 opacity-90 hover:opacity-100 transform translate-x-1/2"
-            aria-label="Scroll right"
-          >
-            <ChevronRight size={20} />
-          </button>
-        )}
-        
-        {/* Carousel */}
-        <div 
-          className="overflow-x-auto scrollbar-hide pb-4 -mx-2 px-2"
-          ref={carouselRef}
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    <div className="relative group">
+      {/* Scroll Buttons */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/90 shadow-md rounded-full p-2 opacity-90 hover:opacity-100 transform -translate-x-1/2"
+          aria-label="Scroll left"
         >
-          <div className="flex space-x-4" style={{ minWidth: 'min-content' }}>
-            {courses.map((course) => (
-              <div 
-                key={course.id} 
-                className="min-w-[280px] max-w-[280px] sm:min-w-[300px] sm:max-w-[300px]"
-              >
-                <DashboardCourseCard {...course} />
-              </div>
-            ))}
-          </div>
+          <ChevronLeft size={20} />
+        </button>
+      )}
+      
+      {canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/90 shadow-md rounded-full p-2 opacity-90 hover:opacity-100 transform translate-x-1/2"
+          aria-label="Scroll right"
+        >
+          <ChevronRight size={20} />
+        </button>
+      )}
+      
+      {/* Carousel */}
+      <div 
+        className="overflow-x-auto scrollbar-hide pb-4 -mx-2 px-2"
+        ref={carouselRef}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <div className="flex space-x-4" style={{ minWidth: 'min-content' }}>
+          {courses.map((course) => (
+            <div 
+              key={course.id} 
+              className="min-w-[280px] max-w-[280px] sm:min-w-[300px] sm:max-w-[300px]"
+            >
+              <DashboardCourseCard {...course} />
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,16 +1,13 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import HeroSection from '@/components/hero/HeroSection';
 import FeatureSection from '@/components/features/FeatureSection';
-import CourseCarousel from '@/components/dashboard/CourseCarousel';
+import CourseCarousel from '@/components/courses/CourseCarousel';
 import SocialProof from '@/components/ui/SocialProof';
 import Footer from '@/components/layout/Footer';
-import { useAllCourses } from '@/services/courseService';
 
 const Index = () => {
-  const { courses, loading } = useAllCourses();
-  
   useEffect(() => {
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -63,19 +60,7 @@ const Index = () => {
       <main>
         <HeroSection />
         <FeatureSection />
-        
-        {/* Display all courses with focus on teacher-uploaded ones */}
-        <div className="py-12 px-4 md:px-8">
-          <div className="container mx-auto">
-            <CourseCarousel 
-              title="Available Courses" 
-              courses={courses}
-              loading={loading}
-              emptyMessage="No courses available yet. Check back soon!"
-            />
-          </div>
-        </div>
-        
+        <CourseCarousel />
         <SocialProof />
         <div className="py-12 md:py-16 lg:py-20 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto text-center">

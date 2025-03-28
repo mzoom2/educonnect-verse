@@ -154,20 +154,7 @@ export const authService = {
   applyAsTeacher: async (userId: number, applicationData: any) => {
     try {
       console.log("API call - teacher application:", userId, applicationData);
-      // Ensure we're explicitly sending the role update
-      if (!applicationData.role) {
-        applicationData.role = 'teacher';
-      }
-      
       const response = await api.post(`/auth/users/${userId}/apply-teacher`, applicationData);
-      
-      // Check if we got a valid response
-      if (response.data) {
-        console.log("Teacher application successful:", response.data);
-      } else {
-        console.error("No data in teacher application response");
-      }
-      
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error('Error submitting teacher application:', error);
@@ -184,10 +171,8 @@ export const courseService = {
   getAllCourses: async () => {
     try {
       const response = await api.get('/courses');
-      console.log("API response - getAllCourses:", response.data);
       return { data: response.data, error: null };
     } catch (error: any) {
-      console.error("Error fetching all courses:", error);
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to fetch courses' 
@@ -234,15 +219,9 @@ export const courseService = {
   // Course creation and management
   createCourse: async (courseData: any) => {
     try {
-      console.log("API call - creating course:", courseData);
       const response = await api.post('/courses', courseData);
-      console.log("API response - createCourse success:", response.data);
       return { data: response.data, error: null };
     } catch (error: any) {
-      console.error("Error creating course:", error);
-      console.error("Response status:", error.response?.status);
-      console.error("Response data:", error.response?.data);
-      
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to create course' 
@@ -302,12 +281,9 @@ export const courseService = {
   // Teacher-specific functions
   getTeacherCourses: async () => {
     try {
-      console.log("API call - fetching teacher courses");
       const response = await api.get('/teacher/courses');
-      console.log("API response - getTeacherCourses:", response.data);
       return { data: response.data, error: null };
     } catch (error: any) {
-      console.error("Error fetching teacher courses:", error);
       return { 
         data: null, 
         error: error.response?.data?.message || 'Failed to fetch teacher courses' 

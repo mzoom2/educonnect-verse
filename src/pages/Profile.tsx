@@ -1,365 +1,299 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useApi } from '@/hooks/useApi';
-import { useToast } from '@/hooks/use-toast';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Wallet, GraduationCap, PlusCircle, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { User, Send, BookOpen, GraduationCap } from 'lucide-react';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Link } from 'react-router-dom';
+import { useApi } from '@/hooks/useApi';
+
+// Form schema for becoming a teacher
+const teacherFormSchema = z.object({
+  qualification: z.string().min(1, {
+    message: "Qualification is required",
+  }),
+  experience: z.string().min(1, {
+    message: "Experience is required",
+  }),
+  specialization: z.string().min(1, {
+    message: "Area of specialization is required",
+  }),
+});
 
 const Profile = () => {
-  const { user, updateUser, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTeacherForm, setShowTeacherForm] = useState(false);
   
-  const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
-  const [profileSaved, setProfileSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
+  // Use the API hook for teacher application
+  const { fetchData: submitTeacherApplication } = useApi(
+    `/auth/users/${user?.id}/apply-teacher`, 
+    'post', 
+    undefined,
+    false
+  );
   
-  const [teacherFormData, setTeacherFormData] = useState({
-    fullName: '',
-    expertise: '',
-    experience: '',
-    education: '',
-    socialLinks: '',
-    motivation: '',
+  // Get user's name or fallback
+  const userName = user?.username || 'User';
+  
+  // User's balance (default to 0 if not set)
+  const userBalance = user?.metadata?.balance || 0;
+  
+  // Check if user is already a teacher
+  const isTeacher = user?.role === 'teacher';
+
+  // Setup form
+  const form = useForm<z.infer<typeof teacherFormSchema>>({
+    resolver: zodResolver(teacherFormSchema),
+    defaultValues: {
+      qualification: "",
+      experience: "",
+      specialization: "",
+    },
   });
-  
-  useEffect(() => {
-    if (user) {
-      setUsername(user.username || '');
-      setBio(user.metadata?.bio || '');
-      
-      // Pre-fill teacher application form from any saved data
-      if (user.metadata?.teacherApplication) {
-        setTeacherFormData({
-          fullName: user.metadata.teacherApplication.fullName || '',
-          expertise: user.metadata.teacherApplication.expertise || '',
-          experience: user.metadata.teacherApplication.experience || '',
-          education: user.metadata.teacherApplication.education || '',
-          socialLinks: user.metadata.teacherApplication.socialLinks || '',
-          motivation: user.metadata.teacherApplication.motivation || '',
-        });
-      }
+
+  // Calculate initials for avatar fallback
+  const getInitials = () => {
+    if (userName) {
+      return userName.substring(0, 2).toUpperCase();
     }
-  }, [user]);
-  
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user) return;
-    
-    try {
-      await updateUser({
-        ...user,
-        username,
-        metadata: {
-          ...user.metadata,
-          bio,
-        },
-      });
-      
-      setProfileSaved(true);
-      
+    return "US";
+  };
+
+  // Handle teacher application submission
+  const onSubmitTeacherApplication = async (values: z.infer<typeof teacherFormSchema>) => {
+    if (!user) {
       toast({
-        title: "Profile Updated",
-        description: "Your profile information has been saved.",
-      });
-      
-      setTimeout(() => {
-        setProfileSaved(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      
-      toast({
-        title: "Update Failed",
-        description: "There was an error updating your profile.",
+        title: "Error",
+        description: "You must be logged in to apply as a teacher.",
         variant: "destructive",
       });
+      return;
     }
-  };
-  
-  const handleTeacherFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setTeacherFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-  
-  const { fetchData: applyAsTeacher, isLoading } = useApi(`/auth/users/${user?.id}/apply-teacher`, 'post', undefined, false);
-  
-  const handleTeacherApplication = async (e: React.FormEvent) => {
-    e.preventDefault();
     
-    if (!user) return;
-    
+    setIsSubmitting(true);
     try {
-      const { data, error } = await applyAsTeacher({
-        teacherApplication: teacherFormData,
-      });
+      const applicationData = {
+        teacherApplication: {
+          qualification: values.qualification,
+          experience: values.experience,
+          specialization: values.specialization,
+          status: 'approved', // Set to approved since we're immediately making them a teacher
+          submittedAt: new Date().toISOString()
+        }
+      };
+
+      console.log("Submitting application data:", applicationData);
+      
+      // Use the API hook to submit the application
+      const { error, data } = await submitTeacherApplication(applicationData);
       
       if (error) {
         throw new Error(error);
       }
       
+      // Refresh user data to get updated role
+      await refreshUserData();
+      
       toast({
-        title: "Application Submitted",
-        description: "Your teacher application has been submitted successfully!",
+        title: "Application approved",
+        description: "You are now a teacher! You can create and manage courses.",
+        variant: "default",
       });
       
-      // Update the local user data if the role was changed
-      if (data?.user) {
-        updateUser(data.user);
-      }
-      
-      // Redirect to dashboard after successful application
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Error submitting teacher application:', error);
-      
+      setShowTeacherForm(false);
+    } catch (error: any) {
+      console.error("Teacher application error:", error);
       toast({
-        title: "Submission Failed",
-        description: "There was an error submitting your application.",
+        title: "Error",
+        description: error.message || "Failed to submit application. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Check if user is already a teacher
-  const isTeacher = user?.role === 'teacher';
-  // Check if user has a pending teacher application
-  const hasPendingApplication = user?.metadata?.teacherApplication && !isTeacher;
-  
-  if (authLoading) {
-    return (
-      <div className="container mx-auto p-8 flex justify-center">
-        <p>Loading profile...</p>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
-  
+  // Get teacher application status if available
+  const teacherApplication = user?.metadata?.teacherApplication;
+  const applicationStatus = teacherApplication?.status || null;
+
   return (
-    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Your Profile</h1>
-          <p className="text-muted-foreground">Manage your profile settings and preferences</p>
-        </div>
-        <Button
-          onClick={() => navigate('/dashboard')}
-          variant="outline"
-        >
-          Return to Dashboard
-        </Button>
-      </div>
-      
-      <Tabs 
-        defaultValue="profile" 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="w-full"
-      >
-        <TabsList className="w-full md:w-auto">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User size={16} />
-            <span>Profile</span>
-          </TabsTrigger>
-          <TabsTrigger value="teacher" className="flex items-center gap-2">
-            <GraduationCap size={16} />
-            <span>Teacher Status</span>
-          </TabsTrigger>
-        </TabsList>
+    <DashboardLayout>
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
         
-        <TabsContent value="profile" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
+        <div className="grid gap-8 md:grid-cols-3">
+          {/* User Information Card */}
+          <Card className="md:col-span-1">
+            <CardHeader className="flex flex-row items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src="" alt={userName} />
+                <AvatarFallback className="text-lg bg-edu-blue text-white">{getInitials()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle>{userName}</CardTitle>
+                <CardDescription>{user?.email}</CardDescription>
+              </div>
             </CardHeader>
-            <form onSubmit={handleProfileUpdate}>
-              <CardContent className="space-y-4">
-                <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={user.email} 
-                    disabled 
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Email cannot be changed
-                  </p>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">Role:</div>
+                  <div className="ml-2 flex items-center">
+                    {isTeacher ? (
+                      <>
+                        <span className="text-green-600 font-medium">Teacher</span>
+                        <Check className="h-4 w-4 text-green-600 ml-1" />
+                      </>
+                    ) : (
+                      'Student'
+                    )}
+                  </div>
                 </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="username">Username</Label>
-                  <Input 
-                    id="username" 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Your display name"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">Member since:</div>
+                  <div className="ml-2">{new Date(user?.created_at || Date.now()).toLocaleDateString()}</div>
                 </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea 
-                    id="bio" 
-                    value={bio} 
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell us a bit about yourself"
-                    rows={4}
-                  />
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-edu-blue" />
+                  <div className="font-medium">Balance:</div>
+                  <div className="ml-2">₦{userBalance.toLocaleString()}</div>
                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {profileSaved ? "Profile saved!" : ""}
-                </p>
-                <Button type="submit">
-                  <Send className="mr-2 h-4 w-4" />
-                  Save Changes
-                </Button>
-              </CardFooter>
-            </form>
+              </div>
+            </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="teacher" className="mt-6">
-          <Card>
+
+          {/* Teacher Application or Status */}
+          <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>Teacher Status</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-6 w-6 text-edu-blue" />
+                {isTeacher ? 'Teacher Status' : 'Become a Teacher'}
+              </CardTitle>
               <CardDescription>
                 {isTeacher 
-                  ? "You are a certified teacher on our platform" 
-                  : hasPendingApplication 
-                    ? "Your application is under review" 
-                    : "Apply to become a teacher"}
+                  ? 'You are currently registered as a teacher on our platform.' 
+                  : 'Share your knowledge and earn by becoming a teacher on our platform.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isTeacher ? (
-                <div className="space-y-4">
-                  <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 p-4 rounded-md">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <GraduationCap className="h-5 w-5" />
-                      Certified Teacher
-                    </h3>
-                    <p className="mt-2">You are now a certified teacher on our platform and have access to all teacher features.</p>
+                <div className="space-y-6">
+                  <div className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded-md p-4">
+                    <p className="font-medium">You are now a teacher!</p>
+                    <p className="mt-2">You can create courses and earn by sharing your knowledge.</p>
                   </div>
-                  
-                  <Button 
-                    onClick={() => navigate('/create-course')}
-                    className="w-full sm:w-auto"
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Create a New Course
-                  </Button>
+                  <Link to="/create-course">
+                    <Button className="mt-4 bg-edu-blue w-full sm:w-auto">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Create a New Course
+                    </Button>
+                  </Link>
                 </div>
-              ) : hasPendingApplication ? (
-                <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 p-4 rounded-md">
-                  <h3 className="font-semibold">Application Under Review</h3>
-                  <p className="mt-2">Your application to become a teacher is currently under review. We'll notify you once it's approved.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleTeacherApplication} className="space-y-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input 
-                      id="fullName" 
-                      name="fullName"
-                      value={teacherFormData.fullName} 
-                      onChange={handleTeacherFieldChange}
-                      placeholder="Your full name"
-                      required
+              ) : showTeacherForm ? (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmitTeacherApplication)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="qualification"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Highest Qualification</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Bachelor's Degree in Computer Science" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label htmlFor="expertise">Area of Expertise</Label>
-                    <Input 
-                      id="expertise" 
-                      name="expertise"
-                      value={teacherFormData.expertise} 
-                      onChange={handleTeacherFieldChange}
-                      placeholder="What subjects do you specialize in?"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label htmlFor="experience">Teaching Experience</Label>
-                    <Textarea 
-                      id="experience" 
+                    
+                    <FormField
+                      control={form.control}
                       name="experience"
-                      value={teacherFormData.experience} 
-                      onChange={handleTeacherFieldChange}
-                      placeholder="Describe your teaching experience"
-                      rows={3}
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Years of Experience</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. 5 years in web development" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label htmlFor="education">Education</Label>
-                    <Textarea 
-                      id="education" 
-                      name="education"
-                      value={teacherFormData.education} 
-                      onChange={handleTeacherFieldChange}
-                      placeholder="Your educational background"
-                      rows={3}
-                      required
+                    
+                    <FormField
+                      control={form.control}
+                      name="specialization"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Area of Specialization</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Web Development, Machine Learning" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label htmlFor="socialLinks">Social Links (Optional)</Label>
-                    <Input 
-                      id="socialLinks" 
-                      name="socialLinks"
-                      value={teacherFormData.socialLinks} 
-                      onChange={handleTeacherFieldChange}
-                      placeholder="LinkedIn, personal website, etc."
-                    />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label htmlFor="motivation">Why do you want to teach?</Label>
-                    <Textarea 
-                      id="motivation" 
-                      name="motivation"
-                      value={teacherFormData.motivation} 
-                      onChange={handleTeacherFieldChange}
-                      placeholder="Tell us why you want to become a teacher on our platform"
-                      rows={4}
-                      required
-                    />
-                  </div>
-                  
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Submitting..." : "Submit Application"}
+                    
+                    <div className="flex gap-4">
+                      <Button type="submit" disabled={isSubmitting} className="bg-edu-blue">
+                        {isSubmitting ? "Submitting..." : "Submit Application"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => setShowTeacherForm(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              ) : (
+                <div className="space-y-4">
+                  <p>
+                    As a teacher, you can create and sell courses on our platform, reaching students 
+                    worldwide and earning money from your expertise.
+                  </p>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Create engaging courses in your area of expertise</li>
+                    <li>Set your own prices and earn up to 70% of sales</li>
+                    <li>Access teaching tools and analytics</li>
+                    <li>Join a community of educators</li>
+                  </ul>
+                  <Button onClick={() => setShowTeacherForm(true)} className="bg-edu-blue mt-4">
+                    <GraduationCap className="mr-2 h-4 w-4" />
+                    Apply to Become a Teacher
                   </Button>
-                </form>
+                </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+
+          {/* Courses Progress (Placeholder) */}
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Your Learning Progress</CardTitle>
+              <CardDescription>Track your learning journey and course progress</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="py-10 text-center text-muted-foreground">
+                <p>You haven't enrolled in any courses yet.</p>
+                <Button variant="outline" className="mt-4">Browse Courses</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
