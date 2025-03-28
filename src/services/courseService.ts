@@ -158,83 +158,30 @@ export async function uploadCourseResource(
 // Function to create a new course
 export async function createCourse(courseData: CourseCreationData): Promise<Course> {
   try {
-    console.log('Creating course with data:', JSON.stringify(courseData, null, 2));
-    
-    // Validate that required fields are present
-    if (!courseData.title) {
-      throw new Error('Course title is required');
-    }
-    
-    if (!courseData.description) {
-      throw new Error('Course description is required');
-    }
-    
-    if (!courseData.category) {
-      throw new Error('Course category is required');
-    }
-    
-    if (!courseData.lessons || courseData.lessons.length === 0) {
-      throw new Error('At least one lesson is required');
-    }
-    
-    // Log lesson structure for debugging
-    console.log('Lesson structure:', JSON.stringify(courseData.lessons.map(lesson => ({
-      id: lesson.id,
-      title: lesson.title,
-      contentLength: lesson.content?.length || 0,
-      hasQuiz: !!lesson.quiz && lesson.quiz.length > 0,
-      hasTask: !!lesson.practicalTask,
-      videoUrl: lesson.videoUrl
-    })), null, 2));
-    
-    // Make the API call
+    console.log('Creating course with data:', courseData);
     const response = await api.post<Course>('/courses', courseData);
-    console.log('Course creation successful. Response:', response.data);
+    console.log('Course creation response:', response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating course:', error);
-    // Enhanced error logging
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('No response received. Request:', error.request);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error('Error message:', error.message);
-    }
-    
-    throw error.response?.data?.message || error.message || 'Failed to create course';
+    throw error;
   }
 }
 
 // Function to save course as draft
 export async function saveCourseAsDraft(courseData: Partial<CourseCreationData>): Promise<Course> {
   try {
-    console.log('Saving course draft with data:', courseData);
     const response = await api.post<Course>('/courses/draft', courseData);
-    console.log('Draft saved successfully. Response:', response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saving course as draft:', error);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-    }
-    
-    throw error.response?.data?.message || error.message || 'Failed to save course draft';
+    throw error;
   }
 }
 
 // Function to upload course media (image, video, etc.)
 export async function uploadCourseMedia(file: File, courseId?: string): Promise<string> {
   try {
-    console.log('Uploading course media:', file.name, 'Size:', file.size, 'Type:', file.type);
-    
     const formData = new FormData();
     formData.append('file', file);
     
@@ -244,23 +191,27 @@ export async function uploadCourseMedia(file: File, courseId?: string): Promise<
     
     formData.append('folder', 'course-media');
     
-    console.log('Sending upload request...');
     const response = await api.post<{ fileUrl: string }>('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     
-    console.log('Upload successful. File URL:', response.data.fileUrl);
     return response.data.fileUrl;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error uploading course media:', error);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-    }
-    
-    throw error.response?.data?.message || error.message || 'Failed to upload media';
+    throw error;
+  }
+}
+
+// Function to fetch all course resources
+export async function fetchCourseResources(courseId: string): Promise<CourseResource[]> {
+  try {
+    const response = await api.get<CourseResource[]>(`/courses/${courseId}/resources`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching resources for course ${courseId}:`, error);
+    throw error;
   }
 }
 

@@ -2,25 +2,17 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
-import { Course, useAllCourses } from '@/services/courseService';
+import { Course } from '@/services/courseService';
 
 interface CourseCarouselProps {
   customCourses?: Course[];
   isLoading?: boolean;
 }
 
-const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: CourseCarouselProps) => {
+const CourseCarousel = ({ customCourses, isLoading = false }: CourseCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  
-  // Fetch courses if no custom courses are provided
-  const { courses: fetchedCourses, loading: apiLoading, error } = useAllCourses(!customCourses);
-  
-  const isLoading = propsLoading || apiLoading;
-  
-  // Use custom courses if provided, otherwise use fetched courses or default courses as a fallback
-  const displayCourses = customCourses || fetchedCourses || [];
   
   const updateScrollButtons = () => {
     if (!carouselRef.current) return;
@@ -59,7 +51,7 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
     }
   };
   
-  // Default courses for fallback
+  // Default courses to show if no custom courses are provided
   const defaultCourses = [
     {
       id: '1',
@@ -123,21 +115,8 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
     }
   ];
 
-  // Show error if there's an error and no custom courses
-  if (error && !customCourses) {
-    return (
-      <section className="section-padding bg-gradient-to-b from-background to-secondary/10">
-        <div className="container mx-auto px-4">
-          <div className="p-4 bg-destructive/10 text-destructive rounded-md">
-            Error loading courses: {error.message}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  // Choose which courses to display
-  const coursesToDisplay = displayCourses.length > 0 ? displayCourses : defaultCourses;
+  // Always use default courses since the API is not available in the deployed environment
+  const displayCourses = defaultCourses;
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">
@@ -193,7 +172,7 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <div className="flex space-x-6" style={{ minWidth: 'min-content' }}>
-              {coursesToDisplay.map((course, index) => (
+              {displayCourses.map((course, index) => (
                 <div 
                   key={course.id || index} 
                   className="min-w-[300px] max-w-[300px] sm:min-w-[320px] sm:max-w-[320px]"
