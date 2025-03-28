@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Table, 
@@ -38,9 +38,16 @@ const TeacherCoursesList = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const { data, isLoading, error, refetch: refreshCourses } = useTeacherCourses();
   
-  // Ensure data is always treated as an array (useTeacherCourses now guarantees this)
+  // Ensure data is always treated as an array even if API returns null/undefined
   const teacherCourses = data || [];
   
+  // Log API connection issues for debugging
+  useEffect(() => {
+    if (error) {
+      console.log('Teacher courses API error:', error);
+    }
+  }, [error]);
+
   const handleSort = (field: keyof TeacherCourse) => {
     if (field === sortField) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -54,7 +61,8 @@ const TeacherCoursesList = () => {
   const isNetworkOrServerError = error?.includes('timeout') || 
                                 error?.includes('network') ||
                                 error?.includes('Server error') ||
-                                error?.includes('Unable to connect');
+                                error?.includes('Unable to connect') ||
+                                error?.includes('not available');
   
   // Check if the error is likely due to permissions
   const isPermissionError = error?.includes('permission') || 

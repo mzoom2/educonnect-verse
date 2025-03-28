@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -9,7 +10,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   // Add timeout to prevent hanging requests
-  timeout: 10000,
+  timeout: 15000, // Increased timeout to 15 seconds
 });
 
 // Add a request interceptor to include auth token in headers
@@ -36,6 +37,14 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Response error:', error);
+    
+    // Provide more detailed error logging
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timed out. The server might be slow or not responding.');
+    } else if (error.code === 'ERR_NETWORK') {
+      console.error('Network error. The server might be down or unreachable.');
+      console.error('Current API URL:', API_URL);
+    }
     
     // Enhanced error logging
     if (error.response) {

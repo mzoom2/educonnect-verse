@@ -133,11 +133,12 @@ export function useCourseDetails(id: string, immediate = true) {
   return useApi(`/courses/${id}`, 'get', undefined, immediate);
 }
 
-// Add a specialized hook for teacher courses
+// Add a specialized hook for teacher courses - Fix the URL path to match the backend
 export function useTeacherCourses(immediate = true) {
-  const response = useApi<any[]>('/api/teacher/courses', 'get', undefined, immediate);
+  // Changed from '/api/teacher/courses' to '/teacher/courses' to match backend expectations
+  const response = useApi<any[]>('/teacher/courses', 'get', undefined, immediate);
   
-  // Ensure data is always an array even if the API returns something else
+  // Return an empty array for data when there's an error or data is missing
   return {
     ...response,
     data: Array.isArray(response.data) ? response.data : []
