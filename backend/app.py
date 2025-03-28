@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -167,6 +166,16 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     
     return decorated
+
+# Health check endpoint
+@app.route('/api/health-check', methods=['GET', 'OPTIONS'])
+def health_check():
+    """Simple health check endpoint to verify if the API is running"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'API server is running',
+        'timestamp': datetime.utcnow().isoformat()
+    }), 200
 
 # Routes for authentication
 @app.route('/api/auth/register', methods=['POST'])
@@ -772,80 +781,3 @@ def seed_data():
         },
         {
             "title": "Fundamentals of UI/UX Design",
-            "author": "Emma Thompson",
-            "image": "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-            "rating": 4.9,
-            "duration": "6 weeks",
-            "price": "₦14,500",
-            "category": "Design",
-            "view_count": 1100,
-            "enrollment_count": 280,
-            "popularity_score": 92
-        },
-        {
-            "title": "Digital Marketing Fundamentals",
-            "author": "Jessica Adams",
-            "image": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-            "rating": 4.6,
-            "duration": "6 weeks",
-            "price": "₦12,500",
-            "category": "Marketing",
-            "view_count": 860,
-            "enrollment_count": 175,
-            "popularity_score": 83
-        },
-        {
-            "title": "Financial Planning & Investment Strategies",
-            "author": "Robert Williams",
-            "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-            "rating": 4.9,
-            "duration": "4 weeks",
-            "price": "₦20,000",
-            "category": "Finance",
-            "view_count": 750,
-            "enrollment_count": 150,
-            "popularity_score": 87
-        }
-    ]
-    
-    # Create admin user
-    admin_exists = User.query.filter_by(email='mzoomolabewa@gmail.com').first()
-    if not admin_exists:
-        admin_user = User(
-            email='mzoomolabewa@gmail.com',
-            password=generate_password_hash('adminpassword'),  # Change this in production
-            username='Admin',
-            role='admin'
-        )
-        db.session.add(admin_user)
-    
-    # Add sample courses
-    for course_data in sample_courses:
-        # Check if course already exists
-        existing_course = Course.query.filter_by(title=course_data['title']).first()
-        if not existing_course:
-            new_course = Course(
-                title=course_data['title'],
-                description=course_data.get('description', f"Description for {course_data['title']}"),
-                author=course_data['author'],
-                image=course_data['image'],
-                rating=course_data['rating'],
-                duration=course_data['duration'],
-                price=course_data['price'],
-                category=course_data['category'],
-                view_count=course_data['view_count'],
-                enrollment_count=course_data['enrollment_count'],
-                popularity_score=course_data['popularity_score']
-            )
-            db.session.add(new_course)
-    
-    db.session.commit()
-    
-    return jsonify({'message': 'Sample data created successfully'}), 201
-
-# Create the database tables
-with app.app_context():
-    db.create_all()
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
