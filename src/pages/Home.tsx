@@ -6,10 +6,12 @@ import {
   BookOpen, Award, Clock, FileText
 } from 'lucide-react';
 import DashboardCourseCard from '@/components/dashboard/DashboardCourseCard';
+import CourseCarousel from '@/components/dashboard/CourseCarousel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { Course } from '@/services/courseService';
 
 const Home = () => {
   const { toast } = useToast();
@@ -47,10 +49,43 @@ const Home = () => {
       price: "₦14,500",
       category: "Design"
     },
+    {
+      id: '4',
+      image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Digital Marketing Fundamentals",
+      author: "Jessica Adams",
+      rating: 4.6,
+      duration: "6 weeks",
+      price: "₦12,500",
+      category: "Marketing"
+    },
+    {
+      id: '5',
+      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Financial Planning & Investment Strategies",
+      author: "Robert Williams",
+      rating: 4.9,
+      duration: "4 weeks",
+      price: "₦20,000",
+      category: "Finance"
+    },
+    {
+      id: '6',
+      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Data Analytics for Business Decision-Making",
+      author: "Daniel Morgan",
+      rating: 4.7,
+      duration: "9 weeks",
+      price: "₦19,500",
+      category: "Business"
+    }
   ];
   
   // Use default courses
   const recentCourses = defaultCourses.slice(0, 3);
+  
+  // All available courses (in a real app, this would come from an API)
+  const allCourses = defaultCourses;
 
   return (
     <DashboardLayout>
@@ -128,8 +163,8 @@ const Home = () => {
           </Card>
         </div>
         
-        {/* Recent Courses */}
-        <div>
+        {/* Continue Learning Section */}
+        <div className="mb-12">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold flex items-center">
               <Clock size={20} className="mr-2 text-edu-blue" />
@@ -147,6 +182,23 @@ const Home = () => {
               <DashboardCourseCard key={course.id} {...course} />
             ))}
           </div>
+        </div>
+        
+        {/* All Courses Section */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold flex items-center">
+              <BookOpen size={20} className="mr-2 text-edu-purple" />
+              All Available Courses
+            </h2>
+            <Link to="/courses">
+              <Button variant="outline" size="sm">
+                Browse All
+              </Button>
+            </Link>
+          </div>
+          
+          <CourseCarousel courses={allCourses} emptyMessage="No courses available yet" />
         </div>
       </div>
     </DashboardLayout>
