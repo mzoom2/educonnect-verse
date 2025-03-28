@@ -167,16 +167,6 @@ def token_required(f):
     
     return decorated
 
-# Health check endpoint
-@app.route('/api/health-check', methods=['GET', 'OPTIONS'])
-def health_check():
-    """Simple health check endpoint to verify if the API is running"""
-    return jsonify({
-        'status': 'ok',
-        'message': 'API server is running',
-        'timestamp': datetime.utcnow().isoformat()
-    }), 200
-
 # Routes for authentication
 @app.route('/api/auth/register', methods=['POST'])
 def register_user():
@@ -437,6 +427,19 @@ def upload_file(current_user):
 @app.route('/uploads/<path:folder>/<filename>')
 def serve_file(folder, filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], folder), filename)
+
+# Add a health check endpoint
+@app.route('/api/health-check', methods=['GET', 'OPTIONS'])
+def health_check():
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.utcnow().isoformat(),
+        'api_version': '1.0'
+    }), 200
 
 # Routes for courses
 @app.route('/api/courses', methods=['GET'])
@@ -779,5 +782,3 @@ def seed_data():
             "enrollment_count": 210,
             "popularity_score": 88
         },
-        {
-            "title": "Fundamentals of UI/UX Design",

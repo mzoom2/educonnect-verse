@@ -58,35 +58,14 @@ api.interceptors.response.use(
   }
 );
 
-// Function to check if the backend is available
-export const checkBackendAvailability = async (): Promise<boolean> => {
+// Add health check function
+export const checkBackendHealth = async () => {
   try {
-    // Try the health-check endpoint first
-    try {
-      await api.get('/health-check', { timeout: 3000 });
-      console.log('Backend is online (health-check endpoint)');
-      return true;
-    } catch (healthCheckError) {
-      console.log('Health-check endpoint not available, trying an alternative endpoint');
-      
-      // If health-check fails, try a known endpoint as fallback
-      // This helps if the backend doesn't have a health-check endpoint
-      try {
-        await api.get('/courses', { 
-          params: { limit: 1 }, // Request minimal data
-          timeout: 3000 
-        });
-        console.log('Backend is online (courses endpoint)');
-        return true;
-      } catch (fallbackError) {
-        // If both checks fail, the server is likely offline
-        console.error('Backend appears to be offline');
-        return false;
-      }
-    }
+    const response = await api.get('/health-check', { timeout: 3000 });
+    return { online: true, data: response.data };
   } catch (error) {
-    console.error('Error checking backend availability:', error);
-    return false;
+    console.error('Backend health check failed:', error);
+    return { online: false, error };
   }
 };
 
@@ -316,18 +295,13 @@ export const courseService = {
     try {
       console.log('Fetching teacher courses from API...');
       
-      // Add connection test before actual request
-      try {
-        // Ping the API with a simple request to check if it's reachable
-        await api.get('/health-check', { timeout: 3000 });
-      } catch (pingError: any) {
-        if (pingError.code === 'ECONNABORTED' || !pingError.response) {
-          console.error('API server appears to be unreachable:', pingError);
-          return { 
-            data: null, 
-            error: 'Unable to connect to the server. Please check your internet connection or try again later.' 
-          };
-        }
+      // First check if backend is reachable
+      const healthCheck = await checkBackendHealth();
+      if (!healthCheck.online) {
+        return { 
+          data: null, 
+          error: 'Backend server appears to be offline. Please check if the server is running.' 
+        };
       }
       
       // Proceed with actual request if ping succeeded
