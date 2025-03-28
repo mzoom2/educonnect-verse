@@ -12,6 +12,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useGetCourses } from '@/hooks/useApi';
 
+interface Course {
+  id: string;
+  image: string;
+  title: string;
+  author: string;
+  rating: number;
+  duration: string;
+  price: string;
+  category: string;
+}
+
 const Home = () => {
   const { toast } = useToast();
   const { user, isTeacher } = useAuth();
@@ -62,7 +73,7 @@ const Home = () => {
   ];
   
   // Use fetched courses or default courses
-  const courses = fetchedCourses || defaultCourses;
+  const courses = fetchedCourses as Course[] || defaultCourses;
   const recentCourses = courses.slice(0, 3);
 
   return (

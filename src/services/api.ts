@@ -88,6 +88,31 @@ export const authService = {
       console.error('Update user error:', error);
       throw error;
     }
+  },
+  
+  // Add the missing methods required by the TypeScript errors
+  isAuthenticated: () => {
+    return localStorage.getItem('token') !== null;
+  },
+  
+  verifyToken: async () => {
+    try {
+      const response = await api.get('/auth/verify');
+      return { valid: true, data: response.data };
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return { valid: false, data: null };
+    }
+  },
+  
+  updateUserMetadata: async (userId: number, data: any) => {
+    try {
+      const response = await api.put(`/users/${userId}/metadata`, data);
+      return { data: response.data, error: null };
+    } catch (error) {
+      console.error('Update user metadata error:', error);
+      return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
   }
 };
 

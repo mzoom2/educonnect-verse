@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -61,10 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setLoading(true);
-      const { data, error } = await authService.getCurrentUser();
+      const userData = await authService.getCurrentUser();
       
-      if (error || !data) {
-        console.error("Failed to fetch user data:", error);
+      if (!userData) {
+        console.error("Failed to fetch user data");
         toast({
           title: "Error",
           description: "Failed to load user data",
@@ -75,8 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      setUser(data.user);
-      setIsAdmin(data.user.role === 'admin');
+      setUser(userData.user);
+      setIsAdmin(userData.user.role === 'admin');
+      setIsTeacher(userData.user.role === 'teacher'); // Set teacher status
     } catch (err) {
       console.error("Error refreshing user data:", err);
       setUser(null);
@@ -92,21 +94,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log("Updating user metadata with:", data);
       
-      const { data: responseData, error } = await authService.updateUserMetadata(userId, data);
+      const response = await authService.updateUserMetadata(userId, data);
       
-      if (error) {
+      if (!response.data) {
         toast({
           title: "Error",
           description: "Failed to update user data",
           variant: "destructive"
         });
-        throw new Error(error);
+        throw new Error(response.error || "Unknown error");
       }
       
       // Refresh user data to get the updated metadata
       await refreshUserData();
       
-      return responseData;
+      return response.data;
     } catch (err) {
       console.error("Error updating user metadata:", err);
       throw err;
@@ -176,9 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error, data } = await authService.login(email, password);
+      const response = await authService.login(email, password);
       
-      if (!error && data) {
+      if (response) {
         // Successfully logged in, refresh user data
         await refreshUserData();
         
@@ -187,15 +189,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Login successful",
           description: "Welcome back!",
         });
+        return { error: null };
       } else {
         toast({
           title: "Login failed",
-          description: error || "Unknown error occurred",
+          description: "Invalid credentials",
           variant: "destructive"
         });
+        return { error: new Error("Invalid credentials") };
       }
-      
-      return { error: error ? new Error(error) : null };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error occurred');
       toast({
@@ -213,46 +215,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username: string) => {
     try {
       setLoading(true);
-      const { error, data } = await authService.register(email, password, username);
+      // Call the updated register method with all required parameters
+      const userData = { email, password, username };
+      const response = await authService.register(userData);
       
-      if (error) {
-        // Handle specific error cases
-        if (error.includes("already exists")) {
-          toast({
-            title: "Registration failed",
-            description: "An account with this email already exists.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Registration failed",
-            description: error,
-            variant: "destructive"
-          });
-        }
-        return { error: new Error(error), data: null };
+      if (!response) {
+        const errorMessage = "Registration failed";
+        toast({
+          title: "Registration failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return { error: new Error(errorMessage), data: null };
       }
       
-      if (data) {
-        // Auto login after successful registration
-        const loginResult = await signIn(email, password);
-        
-        if (!loginResult.error) {
-          toast({
-            title: "Registration successful",
-            description: "Your account has been created",
-          });
-        } else {
-          // If auto-login fails, show a message but don't treat signup as failed
-          toast({
-            title: "Registration successful",
-            description: "Your account has been created, but we couldn't log you in automatically. Please try logging in.",
-          });
-          navigate('/login');
-        }
+      // Auto login after successful registration
+      const loginResult = await signIn(email, password);
+      
+      if (!loginResult.error) {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created",
+        });
+      } else {
+        // If auto-login fails, show a message but don't treat signup as failed
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created, but we couldn't log you in automatically. Please try logging in.",
+        });
+        navigate('/login');
       }
       
-      return { error: null, data };
+      return { error: null, data: response };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error occurred');
       toast({
