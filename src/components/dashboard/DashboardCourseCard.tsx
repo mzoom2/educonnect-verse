@@ -1,7 +1,11 @@
 
 import React, { useState } from 'react';
-import { Clock, User, Star, BookOpen, ImageIcon, AlertCircle } from 'lucide-react';
+import { Clock, User, Star, BookOpen, ImageIcon, AlertCircle, Award, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 interface CourseCardProps {
   id: string;
@@ -12,6 +16,10 @@ interface CourseCardProps {
   duration: string;
   price: string;
   category: string;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  progress?: number;
+  lessonCount?: number;
+  enrollmentStatus?: 'not-enrolled' | 'enrolled' | 'completed';
 }
 
 const DashboardCourseCard = ({ 
@@ -22,7 +30,11 @@ const DashboardCourseCard = ({
   rating, 
   duration, 
   price, 
-  category 
+  category,
+  difficulty = 'Beginner',
+  progress = 0,
+  lessonCount = 0,
+  enrollmentStatus = 'not-enrolled'
 }: CourseCardProps) => {
   const { toast } = useToast();
   // Track if image failed to load
@@ -52,8 +64,42 @@ const DashboardCourseCard = ({
     e.currentTarget.src = defaultImage;
   };
 
+  // Get the appropriate color for the difficulty badge
+  const getDifficultyColor = () => {
+    switch(difficulty) {
+      case 'Beginner': return 'bg-green-100 text-green-800';
+      case 'Intermediate': return 'bg-blue-100 text-blue-800';
+      case 'Advanced': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Get action button text based on enrollment status
+  const getActionButtonText = () => {
+    switch(enrollmentStatus) {
+      case 'enrolled': return 'Continue Learning';
+      case 'completed': return 'View Certificate';
+      default: return 'Enroll Now';
+    }
+  };
+
+  // Get action button variant based on enrollment status
+  const getActionButtonVariant = () => {
+    switch(enrollmentStatus) {
+      case 'enrolled': return 'secondary';
+      case 'completed': return 'outline';
+      default: return 'edu';
+    }
+  };
+
   return (
-    <div className="overflow-hidden border border-border/40 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 group h-full bg-card">
+    <Card 
+      className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group h-full relative"
+      data-course-id={id}
+      data-enrollment-status={enrollmentStatus}
+      data-difficulty-level={difficulty}
+      data-category-id={category}
+    >
       <div className="relative aspect-video overflow-hidden">
         {image && !imageError ? (
           <img 
@@ -76,15 +122,47 @@ const DashboardCourseCard = ({
             )}
           </div>
         )}
-        <div className="absolute top-3 left-3 z-10">
-          <span className="bg-white/90 backdrop-blur-sm text-xs font-medium px-2.5 py-1 rounded-full text-edu-blue shadow-sm">
+        <div className="absolute top-3 left-3 z-10 flex gap-2">
+          <Badge className="bg-white/90 backdrop-blur-sm text-xs font-medium px-2.5 py-1 text-edu-blue shadow-sm">
             {category}
-          </span>
+          </Badge>
+          
+          <Badge className={`${getDifficultyColor()} backdrop-blur-sm text-xs font-medium px-2.5 py-1 shadow-sm`}>
+            {difficulty}
+          </Badge>
         </div>
+
+        {enrollmentStatus === 'completed' && (
+          <div className="absolute top-3 right-3 z-10">
+            <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 shadow-sm flex items-center">
+              <Award className="h-3 w-3 mr-1" />
+              Completed
+            </Badge>
+          </div>
+        )}
+
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </div>
       
-      <div className="p-4">
+      {enrollmentStatus !== 'not-enrolled' && (
+        <div className="px-4 -mt-1 pt-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+            <span>{Math.round(progress)}% complete</span>
+            {progress === 100 && <Award size={12} className="text-green-500" />}
+          </div>
+          <Progress 
+            value={progress} 
+            className="h-1.5" 
+            // Dynamic color based on progress
+            style={{ 
+              background: '#f1f1f1',
+              '--tw-progress-fill': progress < 30 ? '#f87171' : progress < 70 ? '#facc15' : '#4ade80'
+            } as React.CSSProperties}
+          />
+        </div>
+      )}
+      
+      <CardContent className="p-4">
         <h3 className="font-semibold text-base mb-2 line-clamp-2 transition-colors group-hover:text-edu-blue">
           {title}
         </h3>
@@ -100,18 +178,38 @@ const DashboardCourseCard = ({
           </div>
         </div>
         
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Clock size={14} className="mr-1 text-edu-purple/70" />
+        <div className="flex items-center text-xs text-muted-foreground gap-3 mb-3">
+          {lessonCount > 0 && (
+            <div className="flex items-center">
+              <BookOpen size={12} className="mr-1 text-edu-blue/70" />
+              <span>{lessonCount} lessons</span>
+            </div>
+          )}
+          <div className="flex items-center">
+            <Clock size={12} className="mr-1 text-edu-purple/70" />
             <span>{duration}</span>
           </div>
-          
-          <div className="font-semibold text-edu-blue">
-            {price}
-          </div>
         </div>
-      </div>
-    </div>
+        
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+          <div className="font-semibold text-edu-blue">
+            {price === "Free" || price === "₦0" ? (
+              <span className="text-green-600">FREE</span>
+            ) : (
+              price
+            )}
+          </div>
+          
+          <Button 
+            variant={getActionButtonVariant() as any} 
+            size="sm" 
+            className="text-xs"
+          >
+            {getActionButtonText()}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
