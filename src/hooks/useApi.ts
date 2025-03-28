@@ -12,6 +12,18 @@ type ApiRequestState<T> = {
 
 type ApiMethod = 'get' | 'post' | 'put' | 'delete';
 
+// Check if backend is available
+export const checkBackendHealth = async (): Promise<boolean> => {
+  try {
+    await api.get('/health-check', { timeout: 3000 });
+    console.log('Backend health check passed');
+    return true;
+  } catch (error) {
+    console.error('Backend health check failed:', error);
+    return false;
+  }
+};
+
 // Generic hook for API calls
 export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown, immediate = true, showErrorToast = true) {
   const [state, setState] = useState<ApiRequestState<T>>({
@@ -26,6 +38,12 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // First check if backend is available
+      const isBackendHealthy = await checkBackendHealth();
+      if (!isBackendHealthy) {
+        throw new Error('Backend server is not available. Please check if the server is running.');
+      }
+      
       const requestBody = newBody || body;
       let response;
       

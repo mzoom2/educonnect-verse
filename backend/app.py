@@ -749,36 +749,49 @@ def verify_token(current_user):
         'user': current_user.to_dict()
     }), 200
 
-# Seed sample data
-@app.route('/api/seed', methods=['POST'])
-def seed_data():
-    # Only run in development environment
-    if os.environ.get('FLASK_ENV') != 'development' and not os.environ.get('ALLOW_SEED'):
-        return jsonify({'message': 'Not allowed in this environment'}), 403
+@app.route('/api/ensure-data', methods=['GET'])
+def ensure_data():
+    # Check if any courses exist
+    course_count = Course.query.count()
     
-    # Sample courses data from your existing frontend
-    sample_courses = [
-        {
-            "title": "Introduction to Machine Learning with Python",
-            "author": "Dr. Sarah Johnson",
-            "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-            "rating": 4.8,
-            "duration": "8 weeks",
-            "price": "₦15,000",
-            "category": "Data Science",
-            "view_count": 1250,
-            "enrollment_count": 320,
-            "popularity_score": 95
-        },
-        {
-            "title": "Modern Web Development: React & Node.js",
-            "author": "Michael Chen",
-            "image": "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
-            "rating": 4.7,
-            "duration": "10 weeks",
-            "price": "₦18,000",
-            "category": "Programming",
-            "view_count": 980,
-            "enrollment_count": 210,
-            "popularity_score": 88
-        },
+    if course_count == 0:
+        logger.info("No courses found in database. Creating a sample course.")
+        
+        # Create a sample course
+        sample_course = Course(
+            title="Introduction to the Platform",
+            description="Learn how to use this learning platform effectively.",
+            author="System Administrator",
+            image="/placeholder.svg",
+            rating=5.0,
+            duration="1 hour",
+            price="Free",
+            category="Getting Started"
+        )
+        
+        db.session.add(sample_course)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Created initial course data',
+            'course_count': 1
+        }), 201
+    
+    return jsonify({
+        'message': 'Data already exists',
+        'course_count': course_count
+    }), 200
+
+# Create database tables on startup if they don't exist
+@app.before_first_request
+def create_tables():
+    db.create_all()
+    logger.info("Database tables created (if they didn't exist already)")
+
+if __name__ == '__main__':
+    # Create the database if it doesn't exist
+    with app.app_context():
+        db.create_all()
+        logger.info("Database tables created (if they didn't exist already)")
+        
+    app.run(debug=True, port=5000)
