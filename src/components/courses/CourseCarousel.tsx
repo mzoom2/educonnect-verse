@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
@@ -15,7 +14,7 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
   const [canScrollRight, setCanScrollRight] = useState(true);
   
   // Fetch courses if no custom courses are provided
-  const { courses: fetchedCourses, loading: apiLoading, error } = useAllCourses(!customCourses);
+  const { courses: fetchedCourses, loading: apiLoading, error } = useAllCourses();
   
   const isLoading = propsLoading || apiLoading;
   
