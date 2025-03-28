@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import CreateCourse from "./pages/CreateCourse";
 import AdminPanel from "./pages/AdminPanel";
+import CourseOverview from "./pages/CourseOverview";
 import PrivateRoute from './components/auth/PrivateRoute';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/create-course" element={<CreateCourse />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/courses" element={<CourseOverview />} />
             </Route>
             
             {/* Catch All */}

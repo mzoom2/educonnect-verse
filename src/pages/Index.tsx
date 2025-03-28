@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import HeroSection from '@/components/hero/HeroSection';
@@ -70,9 +69,14 @@ const Index = () => {
             <p className="section-subheading mx-auto mb-6 md:mb-8">
               Join thousands of students already learning on our platform. Get started today with access to hundreds of quality courses.
             </p>
-            <a href="/register" className="btn-primary px-6 py-2.5 text-base">
-              Sign Up Now
-            </a>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <a href="/register" className="btn-primary px-6 py-2.5 text-base">
+                Sign Up Now
+              </a>
+              <a href="/courses" className="btn-secondary px-6 py-2.5 text-base">
+                Explore Courses
+              </a>
+            </div>
           </div>
         </div>
       </main>

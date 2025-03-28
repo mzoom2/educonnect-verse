@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +27,7 @@ type AuthContextType = {
   user: UserData | null;
   loading: boolean;
   isAdmin: boolean;
+  isTeacher: boolean; // Add this property
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
   }>;
@@ -45,6 +45,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false); // Add this state
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!authService.isAuthenticated()) {
         setUser(null);
         setIsAdmin(false);
+        setIsTeacher(false); // Reset teacher status
         setLoading(false);
         return;
       }
@@ -139,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data && data.user) {
         setUser(data.user);
         setIsAdmin(data.user.role === 'admin');
+        setIsTeacher(data.user.role === 'teacher'); // Set teacher status
       }
     } catch (error) {
       console.error("Authentication verification error:", error);
@@ -149,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setUser(null);
       setIsAdmin(false);
+      setIsTeacher(false); // Reset teacher status
     } finally {
       setLoading(false);
     }
@@ -267,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authService.logout();
     setUser(null);
     setIsAdmin(false);
+    setIsTeacher(false); // Reset teacher status
     navigate('/login');
     toast({
       title: "Logged out",
@@ -278,6 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     isAdmin,
+    isTeacher, // Include teacher status in context value
     signIn,
     signUp,
     signOut,
