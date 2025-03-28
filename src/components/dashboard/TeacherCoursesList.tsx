@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -145,8 +146,11 @@ const TeacherCoursesList = () => {
     );
   }
   
+  // Ensure teacherCourses is an array before sorting
+  const coursesArray = Array.isArray(teacherCourses) ? teacherCourses : [];
+
   // Sort the courses based on current sort settings
-  const sortedCourses = [...(teacherCourses as TeacherCourse[])].sort((a, b) => {
+  const sortedCourses = [...coursesArray].sort((a, b) => {
     if (sortField === 'enrollmentCount' || sortField === 'averageRating') {
       return sortDirection === 'asc' 
         ? (a[sortField] || 0) - (b[sortField] || 0)
@@ -163,14 +167,12 @@ const TeacherCoursesList = () => {
   });
 
   // Calculate statistics from real data
-  const totalEnrollments = (teacherCourses as TeacherCourse[]).reduce((sum, course) => sum + course.enrollmentCount, 0);
-  const publishedCourses = (teacherCourses as TeacherCourse[]).filter(course => course.status === 'published').length;
-  const draftCourses = (teacherCourses as TeacherCourse[]).filter(course => course.status === 'draft').length;
-  const averageRating = (teacherCourses as TeacherCourse[]).length > 0 
-    ? (teacherCourses as TeacherCourse[])
-        .filter(course => course.averageRating)
-        .reduce((sum, course) => sum + (course.averageRating || 0), 0) / 
-        (teacherCourses as TeacherCourse[]).filter(course => course.averageRating).length || 0
+  const totalEnrollments = coursesArray.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
+  const publishedCourses = coursesArray.filter(course => course.status === 'published').length;
+  const draftCourses = coursesArray.filter(course => course.status === 'draft').length;
+  const ratedCourses = coursesArray.filter(course => course.averageRating !== undefined);
+  const averageRating = ratedCourses.length > 0 
+    ? ratedCourses.reduce((sum, course) => sum + (course.averageRating || 0), 0) / ratedCourses.length
     : 0;
 
   return (
@@ -264,7 +266,7 @@ const TeacherCoursesList = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             </div>
-          ) : (teacherCourses as TeacherCourse[]).length === 0 ? (
+          ) : coursesArray.length === 0 ? (
             <div className="text-center py-12 border rounded-md bg-muted/20">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
               <h3 className="text-lg font-medium mb-2">No courses yet</h3>
