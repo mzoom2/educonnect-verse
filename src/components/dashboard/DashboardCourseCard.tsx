@@ -1,6 +1,7 @@
 
-import React from 'react';
-import { Clock, User, Star, BookOpen, ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, User, Star, BookOpen, ImageIcon, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface CourseCardProps {
   id: string;
@@ -23,19 +24,34 @@ const DashboardCourseCard = ({
   price, 
   category 
 }: CourseCardProps) => {
+  const { toast } = useToast();
+  // Track if image failed to load
+  const [imageError, setImageError] = useState(false);
   // Default image if image path is missing or invalid
   const defaultImage = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80";
   
   // Handle image loading error
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.log(`Image failed to load: ${image}`);
+    console.log(`Course ID: ${id} | Course Title: ${title}`);
+    
+    // Show toast only on first error
+    if (!imageError) {
+      toast({
+        title: "Image failed to load",
+        description: `Failed to load image for "${title}"`,
+        variant: "destructive",
+      });
+    }
+    
+    setImageError(true);
     e.currentTarget.src = defaultImage;
   };
 
   return (
     <div className="overflow-hidden border border-border/40 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 group h-full bg-card">
       <div className="relative aspect-video overflow-hidden">
-        {image ? (
+        {image && !imageError ? (
           <img 
             src={image} 
             alt={title} 
@@ -44,8 +60,16 @@ const DashboardCourseCard = ({
             onError={handleImageError}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <ImageIcon className="h-10 w-10 text-muted-foreground" />
+          <div className="w-full h-full flex flex-col items-center justify-center bg-muted">
+            <ImageIcon className="h-10 w-10 text-muted-foreground mb-2" />
+            {imageError && (
+              <div className="text-xs text-muted-foreground px-4 text-center">
+                <span className="flex items-center justify-center">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Image failed to load
+                </span>
+              </div>
+            )}
           </div>
         )}
         <div className="absolute top-3 left-3 z-10">

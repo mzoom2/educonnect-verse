@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Course, courseService } from '@/services/courseService';
+import { Course, courseService, ensureFullImageUrl } from '@/services/courseService';
 
 const Home = () => {
   const { toast } = useToast();
@@ -25,8 +25,17 @@ const Home = () => {
         const response = await courseService.getAllCourses();
         
         if (response.data) {
-          console.log('Courses loaded:', response.data);
-          setCourses(response.data);
+          // Make sure all images have full URLs
+          const processedCourses = response.data.map(course => ({
+            ...course,
+            image: ensureFullImageUrl(course.image)
+          }));
+          
+          console.log('Courses loaded with processed images:', 
+            processedCourses.map(c => ({ id: c.id, title: c.title, image: c.image }))
+          );
+          
+          setCourses(processedCourses);
         } else {
           console.error('Failed to load courses:', response.error);
           toast({
@@ -87,7 +96,9 @@ const Home = () => {
       ];
 
   // Log recent courses to debug image issue
-  console.log('Recent courses to display:', recentCourses);
+  console.log('Recent courses to display (with images):', 
+    recentCourses.map(c => ({ id: c.id, title: c.title, image: c.image }))
+  );
 
   return (
     <DashboardLayout>

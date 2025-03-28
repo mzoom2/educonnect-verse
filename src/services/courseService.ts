@@ -79,6 +79,15 @@ export const courseService = {
   getAllCourses: async () => {
     try {
       const response = await api.get('/courses');
+      
+      // Process images to ensure they have full URLs
+      if (response.data && Array.isArray(response.data)) {
+        response.data = response.data.map(course => ({
+          ...course,
+          image: ensureFullImageUrl(course.image)
+        }));
+      }
+      
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error('Error fetching all courses:', error);
@@ -92,6 +101,12 @@ export const courseService = {
   getCourseById: async (id: string) => {
     try {
       const response = await api.get(`/courses/${id}`);
+      
+      // Process image to ensure it has full URL
+      if (response.data) {
+        response.data.image = ensureFullImageUrl(response.data.image);
+      }
+      
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error(`Error fetching course ${id}:`, error);
@@ -146,6 +161,27 @@ export const courseService = {
     }
   }
 };
+
+// Helper function to ensure image URLs are complete
+export function ensureFullImageUrl(imageUrl: string): string {
+  if (!imageUrl) return ''; // Return empty string if no image
+  
+  // Check if the URL already has http:// or https:// protocol
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Check if it's a relative path starting with /
+  if (imageUrl.startsWith('/')) {
+    // Get the base URL of the backend API (remove any path)
+    const apiBaseUrl = api.defaults.baseURL || '';
+    const baseUrl = apiBaseUrl.split('/').slice(0, 3).join('/'); // Get just http(s)://domain.com
+    return `${baseUrl}${imageUrl}`;
+  }
+  
+  // If it's just a filename, assume it's in the uploads folder
+  return `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/${imageUrl}`;
+}
 
 // Function to fetch all courses from API
 export async function fetchCourses(): Promise<Course[]> {
@@ -284,12 +320,15 @@ export async function uploadCourseMedia(file: File, courseTitle?: string, course
     
     formData.append('folder', 'course-media');
     
+    console.log('Uploading course media with:', { courseId, courseTitle, fileName: file.name });
+    
     const response = await api.post<{ fileUrl: string }>('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     
+    console.log('Upload successful, received URL:', response.data.fileUrl);
     return response.data.fileUrl;
   } catch (error) {
     console.error('Error uploading course media:', error);
@@ -361,7 +400,14 @@ export function useAllCourses() {
       try {
         setLoading(true);
         const data = await fetchCourses();
-        setCourses(data);
+        
+        // Process images to ensure they have full URLs
+        const processedData = data.map(course => ({
+          ...course,
+          image: ensureFullImageUrl(course.image)
+        }));
+        
+        setCourses(processedData);
         setError(null);
       } catch (err) {
         console.error('Error fetching courses:', err);
@@ -383,9 +429,16 @@ export function useAllCourses() {
     try {
       setLoading(true);
       const data = await fetchCourses();
-      setCourses(data);
+      
+      // Process images to ensure they have full URLs
+      const processedData = data.map(course => ({
+        ...course,
+        image: ensureFullImageUrl(course.image)
+      }));
+      
+      setCourses(processedData);
       setError(null);
-      return data;
+      return processedData;
     } catch (err) {
       console.error('Error refetching courses:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
