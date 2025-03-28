@@ -45,7 +45,7 @@ const TeacherCoursesList = () => {
   useEffect(() => {
     const checkBackendStatus = async () => {
       try {
-        // Use the health-check endpoint to check if backend is reachable
+        // Use a simple endpoint to check if backend is reachable
         await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
