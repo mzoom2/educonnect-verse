@@ -1,3 +1,4 @@
+
 import React from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useAllCourses } from '@/services/courseService';
-import { Progress } from '@/components/ui/progress';
 
 const Home = () => {
   const { user, isTeacher } = useAuth();
@@ -129,48 +129,6 @@ const Home = () => {
               </p>
             </CardContent>
           </Card>
-        </div>
-        
-        {/* Course Progress Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Your Progress</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Introduction to Machine Learning</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Course Progress</span>
-                    <span>65%</span>
-                  </div>
-                  <Progress value={65} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    Next lesson: Neural Networks Fundamentals
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Web Development Bootcamp</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Course Progress</span>
-                    <span>32%</span>
-                  </div>
-                  <Progress value={32} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    Next lesson: React Hooks Explained
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
         
         {/* Recent Courses */}

@@ -15,7 +15,7 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
   const [canScrollRight, setCanScrollRight] = useState(true);
   
   // Fetch courses if no custom courses are provided
-  const { courses: fetchedCourses, loading: apiLoading, error } = useAllCourses();
+  const { courses: fetchedCourses, loading: apiLoading, error } = useAllCourses(!customCourses);
   
   const isLoading = propsLoading || apiLoading;
   
@@ -136,10 +136,8 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
     );
   }
 
-  // Choose which courses to display, ensuring it's always an array
-  const coursesToDisplay = Array.isArray(displayCourses) && displayCourses.length > 0 
-    ? displayCourses 
-    : defaultCourses;
+  // Choose which courses to display
+  const coursesToDisplay = displayCourses.length > 0 ? displayCourses : defaultCourses;
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">

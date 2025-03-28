@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 COURSE_RESOURCES_FOLDER = os.path.join(UPLOAD_FOLDER, 'course-resources')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # Increased to 500MB max upload
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 
 # Create upload directories if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -360,9 +360,6 @@ def upload_file(current_user):
         file_extension = os.path.splitext(original_filename)[1]
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         
-        # Log file details for debugging
-        logger.info(f"Uploading file: {original_filename}, Size: {request.content_length}, Type: {file_type}")
-        
         # Save the file
         file_path = os.path.join(folder_path, unique_filename)
         file.save(file_path)
@@ -388,12 +385,10 @@ def upload_file(current_user):
         log_activity = ActivityLog(
             user_id=current_user.id,
             action_type='file_upload',
-            details=f"User uploaded file: {original_filename}, Size: {os.path.getsize(file_path)} bytes"
+            details=f"User uploaded file: {original_filename}"
         )
         db.session.add(log_activity)
         db.session.commit()
-        
-        logger.info(f"File upload successful: {file_url}")
         
         return jsonify({
             'message': 'File uploaded successfully',
@@ -769,48 +764,44 @@ def seed_data():
         }
     ]
     
-    # Create admin user if it doesn't exist
-    admin_email = "admin@skillversity.com"
-    admin_user = User.query.filter_by(email=admin_email).first()
-    if not admin_user:
+    # Create admin user
+    admin_exists = User.query.filter_by(email='mzoomolabewa@gmail.com').first()
+    if not admin_exists:
         admin_user = User(
-            email=admin_email,
-            password=generate_password_hash("admin123"),
-            username="Admin",
-            role="admin"
+            email='mzoomolabewa@gmail.com',
+            password=generate_password_hash('adminpassword'),  # Change this in production
+            username='Admin',
+            role='admin'
         )
         db.session.add(admin_user)
-        db.session.commit()
     
-    # Create sample courses
+    # Add sample courses
     for course_data in sample_courses:
-        existing_course = Course.query.filter_by(title=course_data["title"]).first()
+        # Check if course already exists
+        existing_course = Course.query.filter_by(title=course_data['title']).first()
         if not existing_course:
             new_course = Course(
-                title=course_data["title"],
-                description=f"Detailed description for {course_data['title']}",
-                author=course_data["author"],
-                image=course_data["image"],
-                rating=course_data["rating"],
-                duration=course_data["duration"],
-                price=course_data["price"],
-                category=course_data["category"],
-                view_count=course_data["view_count"],
-                enrollment_count=course_data["enrollment_count"],
-                popularity_score=course_data["popularity_score"]
+                title=course_data['title'],
+                description=course_data.get('description', f"Description for {course_data['title']}"),
+                author=course_data['author'],
+                image=course_data['image'],
+                rating=course_data['rating'],
+                duration=course_data['duration'],
+                price=course_data['price'],
+                category=course_data['category'],
+                view_count=course_data['view_count'],
+                enrollment_count=course_data['enrollment_count'],
+                popularity_score=course_data['popularity_score']
             )
             db.session.add(new_course)
     
     db.session.commit()
     
-    return jsonify({'message': 'Database seeded successfully'}), 200
+    return jsonify({'message': 'Sample data created successfully'}), 201
 
-# Main entry point
-if __name__ == "__main__":
-    with app.app_context():
-        # Create tables if they don't exist
-        db.create_all()
-    
-    # Start the app
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+# Create the database tables
+with app.app_context():
+    db.create_all()
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

@@ -117,12 +117,11 @@ export async function fetchCoursesByCategory(category: string): Promise<Course[]
   }
 }
 
-// Modified function to upload a course resource
+// Function to upload a course resource
 export async function uploadCourseResource(
   file: File, 
   courseId: string, 
-  type: string = 'document',
-  onProgress?: (progress: number) => void
+  type: string = 'document'
 ): Promise<CourseResource> {
   try {
     const formData = new FormData();
@@ -140,12 +139,6 @@ export async function uploadCourseResource(
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(percentCompleted);
-        }
-      }
     });
     
     // Create a resource structure matching CourseResource interface
@@ -237,12 +230,8 @@ export async function saveCourseAsDraft(courseData: Partial<CourseCreationData>)
   }
 }
 
-// Modified function to upload course media with progress tracking
-export async function uploadCourseMedia(
-  file: File, 
-  courseId?: string, 
-  onProgress?: (progress: number) => void
-): Promise<string> {
+// Function to upload course media (image, video, etc.)
+export async function uploadCourseMedia(file: File, courseId?: string): Promise<string> {
   try {
     console.log('Uploading course media:', file.name, 'Size:', file.size, 'Type:', file.type);
     
@@ -260,12 +249,6 @@ export async function uploadCourseMedia(
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(percentCompleted);
-        }
-      }
     });
     
     console.log('Upload successful. File URL:', response.data.fileUrl);
