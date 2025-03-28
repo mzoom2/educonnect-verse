@@ -124,7 +124,6 @@ export async function uploadCourseResource(
   type: string = 'document'
 ): Promise<CourseResource> {
   try {
-    console.log('Uploading course resource:', { file, courseId, type });
     const formData = new FormData();
     formData.append('file', file);
     formData.append('course_id', courseId);
@@ -141,8 +140,6 @@ export async function uploadCourseResource(
         'Content-Type': 'multipart/form-data',
       },
     });
-    
-    console.log('Upload response:', response.data);
     
     // Create a resource structure matching CourseResource interface
     return {
@@ -161,31 +158,10 @@ export async function uploadCourseResource(
 // Function to create a new course
 export async function createCourse(courseData: CourseCreationData): Promise<Course> {
   try {
-    console.log('Creating course with data:', JSON.stringify(courseData, null, 2));
-    
-    // Log the structure of lessons to check if they're properly formatted
-    if (courseData.lessons) {
-      console.log('Number of lessons:', courseData.lessons.length);
-      console.log('First lesson sample:', JSON.stringify(courseData.lessons[0], null, 2));
-    }
-    
     const response = await api.post<Course>('/courses', courseData);
-    console.log('Course creation response:', response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating course:', error);
-    console.error('Error response:', error.response?.data);
-    console.error('Error status:', error.response?.status);
-    
-    // Provide more detailed error information
-    if (error.response) {
-      console.error('Server responded with:', error.response.data);
-    } else if (error.request) {
-      console.error('No response received from server');
-    } else {
-      console.error('Error setting up the request:', error.message);
-    }
-    
     throw error;
   }
 }
@@ -193,13 +169,10 @@ export async function createCourse(courseData: CourseCreationData): Promise<Cour
 // Function to save course as draft
 export async function saveCourseAsDraft(courseData: Partial<CourseCreationData>): Promise<Course> {
   try {
-    console.log('Saving course draft with data:', JSON.stringify(courseData, null, 2));
     const response = await api.post<Course>('/courses/draft', courseData);
-    console.log('Course draft save response:', response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saving course as draft:', error);
-    console.error('Error response:', error.response?.data);
     throw error;
   }
 }
@@ -207,7 +180,6 @@ export async function saveCourseAsDraft(courseData: Partial<CourseCreationData>)
 // Function to upload course media (image, video, etc.)
 export async function uploadCourseMedia(file: File, courseId?: string): Promise<string> {
   try {
-    console.log('Uploading course media:', { file, courseId });
     const formData = new FormData();
     formData.append('file', file);
     
@@ -217,25 +189,15 @@ export async function uploadCourseMedia(file: File, courseId?: string): Promise<
     
     formData.append('folder', 'course-media');
     
-    console.log('Form data prepared for upload');
-    
     const response = await api.post<{ fileUrl: string }>('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     
-    console.log('Media upload response:', response.data);
-    
     return response.data.fileUrl;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error uploading course media:', error);
-    console.error('Error response:', error.response?.data);
-    // If the upload fails but we have the file locally, we can create a temporary URL
-    if (file && window.URL) {
-      console.log('Creating temporary local URL for debugging');
-      return URL.createObjectURL(file);
-    }
     throw error;
   }
 }
