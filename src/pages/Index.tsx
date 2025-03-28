@@ -9,7 +9,7 @@ import Footer from '@/components/layout/Footer';
 import { useAllCourses } from '@/services/courseService';
 
 const Index = () => {
-  const { courses, loading } = useAllCourses();
+  const { courses, loading, error } = useAllCourses();
 
   useEffect(() => {
     // Smooth scroll for anchor links
@@ -57,13 +57,18 @@ const Index = () => {
     };
   }, []);
 
+  // Log the error for debugging purposes
+  if (error) {
+    console.log('Error loading courses:', error);
+  }
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
       <main>
         <HeroSection />
         <FeatureSection />
-        <CourseCarousel customCourses={courses} isLoading={loading} />
+        <CourseCarousel isLoading={loading} />
         <SocialProof />
         <div className="py-12 md:py-16 lg:py-20 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto text-center">

@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
@@ -114,8 +115,8 @@ const CourseCarousel = ({ customCourses, isLoading = false }: CourseCarouselProp
     }
   ];
 
-  // Determine which courses to display - defaulting to our preset list if API fails
-  const displayCourses = isLoading ? [] : (customCourses && customCourses.length > 0 ? customCourses : defaultCourses);
+  // Always use default courses since the API is not available in the deployed environment
+  const displayCourses = defaultCourses;
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">
