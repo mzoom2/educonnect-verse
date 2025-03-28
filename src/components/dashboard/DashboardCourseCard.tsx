@@ -30,16 +30,20 @@ const DashboardCourseCard = ({
   // Default image if image path is missing or invalid
   const defaultImage = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80";
   
-  // Handle image loading error
+  // Enhanced image error handling with detailed logging
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // Log detailed information about the image that failed to load
     console.log(`Image failed to load: ${image}`);
     console.log(`Course ID: ${id} | Course Title: ${title}`);
     
-    // Show toast only on first error
+    // Only show toast and log error on first failure
     if (!imageError) {
+      console.error(`Image URL structure incorrect or resource missing for course "${title}" (ID: ${id})`);
+      
+      // Show detailed toast with more actionable information
       toast({
         title: "Image failed to load",
-        description: `Failed to load image for "${title}"`,
+        description: `Failed to load image for "${title}". Using default image instead.`,
         variant: "destructive",
       });
     }

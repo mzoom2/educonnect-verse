@@ -120,6 +120,15 @@ export const courseService = {
   searchCourses: async (query: string) => {
     try {
       const response = await api.get(`/courses/search?q=${query}`);
+      
+      // Process images in search results
+      if (response.data && Array.isArray(response.data)) {
+        response.data = response.data.map(course => ({
+          ...course,
+          image: ensureFullImageUrl(course.image)
+        }));
+      }
+      
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error(`Error searching courses with query ${query}:`, error);
@@ -162,25 +171,40 @@ export const courseService = {
   }
 };
 
-// Helper function to ensure image URLs are complete
+// Enhanced helper function to ensure image URLs are complete with better error handling
 export function ensureFullImageUrl(imageUrl: string): string {
-  if (!imageUrl) return ''; // Return empty string if no image
+  if (!imageUrl) {
+    console.log('No image URL provided, returning empty string');
+    return ''; 
+  }
   
-  // Check if the URL already has http:// or https:// protocol
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+  try {
+    // Check if the URL already has http:// or https:// protocol
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      console.log('Image already has full URL:', imageUrl);
+      return imageUrl;
+    }
+    
+    // Check if it's a relative path starting with /
+    if (imageUrl.startsWith('/')) {
+      // Get the base URL of the backend API (remove any path)
+      const apiBaseUrl = api.defaults.baseURL || '';
+      const baseUrl = apiBaseUrl.split('/').slice(0, 3).join('/'); // Get just http(s)://domain.com
+      const fullUrl = `${baseUrl}${imageUrl}`;
+      console.log(`Converted relative path ${imageUrl} to full URL: ${fullUrl}`);
+      return fullUrl;
+    }
+    
+    // If it's just a filename, assume it's in the uploads folder
+    const fullUrl = `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/${imageUrl}`;
+    console.log(`Converted filename ${imageUrl} to full URL: ${fullUrl}`);
+    return fullUrl;
+  } catch (error) {
+    console.error('Error processing image URL:', error);
+    console.error('Problematic image URL:', imageUrl);
+    // Return the original URL if there's an error in processing
     return imageUrl;
   }
-  
-  // Check if it's a relative path starting with /
-  if (imageUrl.startsWith('/')) {
-    // Get the base URL of the backend API (remove any path)
-    const apiBaseUrl = api.defaults.baseURL || '';
-    const baseUrl = apiBaseUrl.split('/').slice(0, 3).join('/'); // Get just http(s)://domain.com
-    return `${baseUrl}${imageUrl}`;
-  }
-  
-  // If it's just a filename, assume it's in the uploads folder
-  return `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/${imageUrl}`;
 }
 
 // Function to fetch all courses from API
