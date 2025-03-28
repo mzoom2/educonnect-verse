@@ -34,14 +34,14 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
       setState({
         data: null,
         isLoading: false,
-        error: 'Unable to connect to the backend server. Please check your connection or try again later.',
+        error: 'Unable to connect to the backend server. Please verify the server is running.',
         isBackendAvailable: false,
       });
       
       if (showErrorToast) {
         toast({
           title: "Connection Error",
-          description: "Unable to connect to the backend server. Please check your connection or try again later.",
+          description: `Unable to connect to the backend server at ${api.defaults.baseURL}. Please verify the server is running.`,
           variant: "destructive",
         });
       }

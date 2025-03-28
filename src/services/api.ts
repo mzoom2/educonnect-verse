@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -61,19 +62,19 @@ api.interceptors.response.use(
 // Function to check if the backend is available
 export const checkBackendAvailability = async (): Promise<boolean> => {
   try {
-    // Try the health-check endpoint first
+    // Try the health-check endpoint
     try {
-      await api.get('/health-check', { timeout: 3000 });
-      console.log('Backend is online (health-check endpoint)');
+      const response = await api.get('/health-check', { timeout: 3000 });
+      console.log('Backend is online (health-check endpoint)', response.data);
       return true;
-    } catch (healthCheckError) {
-      console.log('Health-check endpoint not available, trying an alternative endpoint');
+    } catch (healthCheckError: any) {
+      console.log('Health-check endpoint error:', healthCheckError.message);
       
       // If health-check fails, try a known endpoint as fallback
-      // This helps if the backend doesn't have a health-check endpoint
       try {
-        await api.get('/courses', { 
-          params: { limit: 1 }, // Request minimal data
+        // Using a minimal request to reduce server load
+        const response = await api.get('/courses', { 
+          params: { limit: 1 }, 
           timeout: 3000 
         });
         console.log('Backend is online (courses endpoint)');
