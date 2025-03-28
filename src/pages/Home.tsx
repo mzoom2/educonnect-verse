@@ -86,6 +86,9 @@ const Home = () => {
         },
       ];
 
+  // Log recent courses to debug image issue
+  console.log('Recent courses to display:', recentCourses);
+
   return (
     <DashboardLayout>
       <div className="container mx-auto p-4 md:p-6">
