@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -50,8 +51,8 @@ const Profile = () => {
   // User's balance (default to 0 if not set)
   const userBalance = user?.metadata?.balance || 0;
   
-  // Check if user is already a teacher
-  const isTeacher = user?.role === 'teacher';
+  // Remove this duplicate declaration since we're now getting isTeacher from useAuth()
+  // const isTeacher = user?.role === 'teacher';
 
   // Setup form
   const form = useForm<z.infer<typeof teacherFormSchema>>({
