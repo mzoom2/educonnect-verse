@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { 
@@ -10,17 +10,47 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Course, useAllCourses } from '@/services/courseService';
 
 const Home = () => {
   const { toast } = useToast();
   const { user, isTeacher } = useAuth();
-  const { courses, loading, error } = useAllCourses();
   
-  // Get the most recent courses for the "Continue Learning" section
-  const recentCourses = courses && courses.length > 0 
-    ? courses.slice(0, 3) 
-    : [];
+  // Default courses for development
+  const defaultCourses = [
+    {
+      id: '1',
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Introduction to Machine Learning with Python",
+      author: "Dr. Sarah Johnson",
+      rating: 4.8,
+      duration: "8 weeks",
+      price: "₦15,000",
+      category: "Data Science"
+    },
+    {
+      id: '2',
+      image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
+      title: "Modern Web Development: React & Node.js",
+      author: "Michael Chen",
+      rating: 4.7,
+      duration: "10 weeks",
+      price: "₦18,000",
+      category: "Programming"
+    },
+    {
+      id: '3',
+      image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Fundamentals of UI/UX Design",
+      author: "Emma Thompson",
+      rating: 4.9,
+      duration: "6 weeks",
+      price: "₦14,500",
+      category: "Design"
+    },
+  ];
+  
+  // Use default courses
+  const recentCourses = defaultCourses.slice(0, 3);
 
   return (
     <DashboardLayout>
@@ -112,33 +142,11 @@ const Home = () => {
             </Link>
           </div>
           
-          {loading ? (
-            <div className="text-center py-8">Loading courses...</div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-500">
-              Error loading courses. Please try again later.
-            </div>
-          ) : recentCourses.length === 0 ? (
-            <div className="text-center py-8">
-              No courses available. Explore our catalog to start learning!
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recentCourses.map((course) => (
-                <DashboardCourseCard 
-                  key={course.id} 
-                  id={course.id}
-                  title={course.title}
-                  author={course.author}
-                  image={course.image}
-                  rating={course.rating}
-                  duration={course.duration}
-                  price={course.price}
-                  category={course.category}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recentCourses.map((course) => (
+              <DashboardCourseCard key={course.id} {...course} />
+            ))}
+          </div>
         </div>
       </div>
     </DashboardLayout>
