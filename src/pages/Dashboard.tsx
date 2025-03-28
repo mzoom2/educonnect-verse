@@ -1,301 +1,377 @@
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import CourseCarousel from '@/components/dashboard/CourseCarousel';
+import { 
+  Tabs, TabsContent, TabsList, TabsTrigger 
+} from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Search as SearchIcon } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
+import { 
+  BookOpen, Layers, Users, TrendingUp, FileText, 
+  Clock, Activity, Plus, Award, Star 
+} from 'lucide-react';
+import DashboardCourseCard from '@/components/dashboard/DashboardCourseCard';
+import CourseCarousel from '@/components/dashboard/CourseCarousel';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
-
-// Sample course data for dashboard
-const sampleCourses = [
-  {
-    id: '1',
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    title: "Introduction to Machine Learning with Python",
-    author: "Dr. Sarah Johnson",
-    rating: 4.8,
-    duration: "8 weeks",
-    price: "₦15,000",
-    category: "Data Science",
-    createdAt: "2023-05-10T10:30:00Z",
-    viewCount: 1250,
-    enrollmentCount: 562,
-    popularityScore: 89
-  },
-  {
-    id: '2',
-    image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
-    title: "Modern Web Development: React & Node.js",
-    author: "Michael Chen",
-    rating: 4.7,
-    duration: "10 weeks",
-    price: "₦18,000",
-    category: "Programming",
-    createdAt: "2023-06-15T14:45:00Z",
-    viewCount: 980,
-    enrollmentCount: 421,
-    popularityScore: 76
-  },
-  {
-    id: '3',
-    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    title: "Fundamentals of UI/UX Design",
-    author: "Emma Thompson",
-    rating: 4.9,
-    duration: "6 weeks",
-    price: "₦14,500",
-    category: "Design",
-    createdAt: "2023-04-20T09:15:00Z",
-    viewCount: 1520,
-    enrollmentCount: 689,
-    popularityScore: 92
-  },
-  {
-    id: '4',
-    image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    title: "Digital Marketing Fundamentals",
-    author: "Jessica Adams",
-    rating: 4.6,
-    duration: "6 weeks",
-    price: "₦12,500",
-    category: "Marketing",
-    createdAt: "2023-07-05T11:20:00Z",
-    viewCount: 750,
-    enrollmentCount: 310,
-    popularityScore: 68
-  },
-  {
-    id: '5',
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    title: "Financial Planning & Investment Strategies",
-    author: "Robert Williams",
-    rating: 4.9,
-    duration: "4 weeks",
-    price: "₦20,000",
-    category: "Finance",
-    createdAt: "2023-03-12T16:30:00Z",
-    viewCount: 950,
-    enrollmentCount: 405,
-    popularityScore: 81
-  },
-  {
-    id: '6',
-    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    title: "Data Analytics for Business Decision-Making",
-    author: "Daniel Morgan",
-    rating: 4.7,
-    duration: "9 weeks",
-    price: "₦19,500",
-    category: "Business",
-    createdAt: "2023-02-28T13:10:00Z",
-    viewCount: 1100,
-    enrollmentCount: 470,
-    popularityScore: 85
-  }
-];
-
-// Helper functions for course filtering
-const getRecentlyViewedCourses = (courses) => {
-  return [...courses].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 6);
-};
-
-const getPopularCourses = (courses) => {
-  return [...courses].sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0)).slice(0, 6);
-};
-
-const getRecommendedCourses = (courses) => {
-  return [...courses].sort((a, b) => b.rating - a.rating).slice(0, 6);
-};
-
-const getInDemandCourses = (courses) => {
-  return [...courses].sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0)).slice(0, 6);
-};
-
-const getCategoryCourseCount = (courses) => {
-  const categories = {};
-  
-  courses.forEach(course => {
-    if (course.category) {
-      categories[course.category] = (categories[course.category] || 0) + 1;
-    }
-  });
-  
-  return Object.entries(categories).map(([name, count]) => ({ name, count }));
-};
+import { useAllCourses, getRecentlyViewedCourses, getPopularCourses } from '@/services/courseService';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  const { user, isAdmin } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const { courses, loading, error } = useAllCourses();
+  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
+  const { user, isTeacher } = useAuth();
   
-  // Get user's name from username, or fallback to "Student"
-  const userName = user ? user.username : 'Student';
+  // Demo data for charts
+  const demoData = [
+    { name: 'Mon', value: 12 },
+    { name: 'Tue', value: 19 },
+    { name: 'Wed', value: 15 },
+    { name: 'Thu', value: 21 },
+    { name: 'Fri', value: 25 },
+    { name: 'Sat', value: 18 },
+    { name: 'Sun', value: 14 },
+  ];
+  
+  const categoryData = [
+    { name: 'Data Science', count: 18 },
+    { name: 'Web Dev', count: 24 },
+    { name: 'Design', count: 15 },
+    { name: 'Marketing', count: 9 },
+    { name: 'Business', count: 14 },
+  ];
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setIsSearching(!!searchTerm.trim());
+  // Default courses for development (used when API is unavailable)
+  const defaultCourses = [
+    {
+      id: '1',
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Introduction to Machine Learning with Python",
+      author: "Dr. Sarah Johnson",
+      rating: 4.8,
+      duration: "8 weeks",
+      price: "₦15,000",
+      category: "Data Science"
+    },
+    {
+      id: '2',
+      image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
+      title: "Modern Web Development: React & Node.js",
+      author: "Michael Chen",
+      rating: 4.7,
+      duration: "10 weeks",
+      price: "₦18,000",
+      category: "Programming"
+    },
+    {
+      id: '3',
+      image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Fundamentals of UI/UX Design",
+      author: "Emma Thompson",
+      rating: 4.9,
+      duration: "6 weeks",
+      price: "₦14,500",
+      category: "Design"
+    },
+    {
+      id: '4',
+      image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+      title: "Digital Marketing Fundamentals",
+      author: "Jessica Adams",
+      rating: 4.6,
+      duration: "6 weeks",
+      price: "₦12,500",
+      category: "Marketing"
+    }
+  ];
+  
+  // Use default courses instead of API data
+  const displayCourses = defaultCourses;
+  const recentCourses = defaultCourses.slice(0, 3);
+  const popularCourses = [...defaultCourses].sort(() => Math.random() - 0.5).slice(0, 3);
+
+  useEffect(() => {
+    if (error) {
+      console.error('Error loading courses:', error);
+      toast({
+        title: "Failed to load course data",
+        description: "Using sample data instead. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background p-3 border border-border shadow-sm rounded-md">
+          <p className="text-sm font-medium">{`${label}`}</p>
+          <p className="text-sm text-edu-blue">{`${payload[0].value} Courses`}</p>
+        </div>
+      );
+    }
+    return null;
   };
-
-  const clearSearch = () => {
-    setSearchTerm('');
-    setIsSearching(false);
-  };
-
-  // Search functionality with mock data
-  const searchResults = isSearching ? 
-    sampleCourses.filter(course => 
-      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.author.toLowerCase().includes(searchTerm.toLowerCase())
-    ) : [];
-
-  // Get courses for different sections
-  const recentlyViewedCourses = getRecentlyViewedCourses(sampleCourses);
-  const popularCourses = getPopularCourses(sampleCourses);
-  const recommendedCourses = getRecommendedCourses(sampleCourses);
-  const inDemandCourses = getInDemandCourses(sampleCourses);
-  const categoryData = getCategoryCourseCount(sampleCourses);
 
   return (
     <DashboardLayout>
-      <div className="py-6">
-        <div className="container mx-auto px-4">
-          {/* Welcome Banner */}
-          <div className="bg-gradient-to-r from-edu-blue/10 to-edu-purple/10 rounded-lg p-6 mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              Welcome back, {userName}!
-            </h1>
-            <p className="text-muted-foreground">
-              Continue your learning journey. You have 0 courses in progress.
-            </p>
-            {isAdmin && (
-              <div className="mt-4">
-                <Link to="/admin">
-                  <Button className="bg-edu-blue hover:bg-edu-blue/90">
-                    Access Admin Panel
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Search Form - Desktop and Mobile */}
-          <div className="mb-8">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  type="search"
-                  placeholder="Search for courses..."
-                  className="pl-10 pr-4 py-2 w-full"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Button type="submit" className="bg-edu-blue">Search</Button>
-              {isSearching && (
-                <Button type="button" variant="outline" onClick={clearSearch}>
-                  Clear
-                </Button>
-              )}
-            </form>
-          </div>
-
-          {/* Search Results */}
-          {isSearching && (
-            <section className="mb-10">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl md:text-2xl font-semibold">Search Results</h2>
-              </div>
-              <CourseCarousel 
-                courses={searchResults} 
-                emptyMessage={"No courses matching your search criteria"} 
-              />
-            </section>
-          )}
-
-          {!isSearching && (
-            <>
-              {/* Recently Viewed Courses */}
-              <section className="mb-10">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl md:text-2xl font-semibold">Recently Viewed Courses</h2>
-                  <Button variant="ghost" className="text-edu-blue hover:text-edu-blue/90 p-0 flex items-center">
-                    View all <ChevronRight size={16} className="ml-1" />
-                  </Button>
-                </div>
-                <CourseCarousel 
-                  courses={recentlyViewedCourses} 
-                  emptyMessage={"You haven't viewed any courses yet"} 
-                />
-              </section>
-
-              {/* Most Popular Courses */}
-              <section className="mb-10">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl md:text-2xl font-semibold">Most Popular Courses</h2>
-                  <Button variant="ghost" className="text-edu-blue hover:text-edu-blue/90 p-0 flex items-center">
-                    View all <ChevronRight size={16} className="ml-1" />
-                  </Button>
-                </div>
-                <CourseCarousel 
-                  courses={popularCourses} 
-                  emptyMessage={"No popular courses available"} 
-                />
-              </section>
-
-              {/* Personalized Recommendations */}
-              <section className="mb-10">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl md:text-2xl font-semibold">Recommended For You</h2>
-                  <Button variant="ghost" className="text-edu-blue hover:text-edu-blue/90 p-0 flex items-center">
-                    See all recommendations <ChevronRight size={16} className="ml-1" />
-                  </Button>
-                </div>
-                <CourseCarousel 
-                  courses={recommendedCourses} 
-                  emptyMessage={"No recommendations available yet"} 
-                />
-              </section>
-
-              {/* In-Demand Skills */}
-              <section className="mb-10">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl md:text-2xl font-semibold">In-Demand Skills</h2>
-                  <Button variant="ghost" className="text-edu-blue hover:text-edu-blue/90 p-0 flex items-center">
-                    View all <ChevronRight size={16} className="ml-1" />
-                  </Button>
-                </div>
-                <CourseCarousel 
-                  courses={inDemandCourses} 
-                  emptyMessage={"No in-demand courses available"} 
-                />
-              </section>
-
-              {/* Categories */}
-              <section className="mb-10">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl md:text-2xl font-semibold">Browse by Category</h2>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {categoryData.map((category, index) => (
-                    <div 
-                      key={index} 
-                      className="bg-card border border-border/40 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                    >
-                      <h3 className="font-medium mb-1">{category.name}</h3>
-                      <p className="text-sm text-muted-foreground">{category.count} course{category.count !== 1 ? 's' : ''}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
+      <div className="container mx-auto p-4 md:p-6">
+        {/* Welcome Header Section */}
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
+            Welcome back, {user?.username || 'Student'}!
+          </h1>
+          <p className="text-muted-foreground">
+            Here's what's happening with your learning journey today.
+          </p>
         </div>
+        
+        {/* Main Dashboard Tabs */}
+        <Tabs 
+          defaultValue="overview" 
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="mb-8"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-md">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="mycourses">My Courses</TabsTrigger>
+              <TabsTrigger value="progress">Progress</TabsTrigger>
+              {isTeacher && (
+                <TabsTrigger value="teaching">Teaching</TabsTrigger>
+              )}
+            </TabsList>
+          </div>
+          
+          {/* Overview Tab Content */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Enrolled Courses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="text-2xl font-bold">7</div>
+                    <BookOpen className="text-edu-blue" size={24} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    2 new this month
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="text-2xl font-bold">3</div>
+                    <Award className="text-edu-purple" size={24} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    1 this month
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Hours Spent</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="text-2xl font-bold">24</div>
+                    <Clock className="text-edu-yellow" size={24} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    +5 from last week
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Certificates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="text-2xl font-bold">2</div>
+                    <FileText className="text-edu-green" size={24} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Completed certifications
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Recent Activity & Popular Courses */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              <div className="lg:col-span-3">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Activity size={18} className="mr-2 text-edu-blue" />
+                      Course Activity
+                    </CardTitle>
+                    <CardDescription>
+                      Your weekly learning activity
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[240px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={demoData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="name" />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="lg:col-span-2">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Star size={18} className="mr-2 text-edu-yellow" />
+                      Top Categories
+                    </CardTitle>
+                    <CardDescription>
+                      Your most engaged subjects
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {categoryData.map((category, index) => (
+                        <div key={index} className="flex items-center">
+                          <div className="w-36 font-medium truncate pr-2">{category.name}</div>
+                          <div className="w-full bg-secondary rounded-full h-2.5">
+                            <div 
+                              className={`h-2.5 rounded-full ${
+                                index === 0 ? "bg-edu-blue" : 
+                                index === 1 ? "bg-edu-purple" : 
+                                index === 2 ? "bg-edu-green" : 
+                                index === 3 ? "bg-edu-yellow" : "bg-edu-red"
+                              }`} 
+                              style={{ width: `${(category.count / 25) * 100}%` }}
+                            ></div>
+                          </div>
+                          <div className="w-12 text-right text-muted-foreground text-sm">
+                            {category.count}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            
+            {/* Recent Courses */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold flex items-center">
+                  <Clock size={20} className="mr-2 text-edu-blue" />
+                  Continue Learning
+                </h2>
+                <Button variant="outline" size="sm">
+                  View All
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {recentCourses.map((course) => (
+                  <DashboardCourseCard key={course.id} {...course} />
+                ))}
+              </div>
+            </div>
+            
+            {/* Popular Courses */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold flex items-center">
+                  <TrendingUp size={20} className="mr-2 text-edu-purple" />
+                  Popular Courses
+                </h2>
+                <Button variant="outline" size="sm">
+                  View All
+                </Button>
+              </div>
+              
+              <CourseCarousel courses={popularCourses} />
+            </div>
+          </TabsContent>
+          
+          {/* My Courses Tab Content */}
+          <TabsContent value="mycourses" className="space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">My Enrolled Courses</h2>
+              <Button variant="outline">
+                Browse Courses
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayCourses.map((course) => (
+                <DashboardCourseCard key={course.id} {...course} />
+              ))}
+            </div>
+          </TabsContent>
+          
+          {/* Progress Tab Content */}
+          <TabsContent value="progress">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Learning Progress</CardTitle>
+                  <CardDescription>
+                    Track your course completions and learning milestones
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Progress tracking content will go here</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          {/* Teaching Tab Content - Only for Teachers */}
+          {isTeacher && (
+            <TabsContent value="teaching">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">My Courses</h2>
+                  <Button>
+                    <Plus size={16} className="mr-2" />
+                    Create New Course
+                  </Button>
+                </div>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Teaching Dashboard</CardTitle>
+                    <CardDescription>
+                      Manage your courses and students
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">Teaching dashboard content will go here</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </DashboardLayout>
   );

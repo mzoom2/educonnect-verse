@@ -6,11 +6,8 @@ import FeatureSection from '@/components/features/FeatureSection';
 import CourseCarousel from '@/components/courses/CourseCarousel';
 import SocialProof from '@/components/ui/SocialProof';
 import Footer from '@/components/layout/Footer';
-import { useAllCourses } from '@/services/courseService';
 
 const Index = () => {
-  const { courses, loading, error } = useAllCourses();
-
   useEffect(() => {
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -57,18 +54,13 @@ const Index = () => {
     };
   }, []);
 
-  // Log the error for debugging purposes
-  if (error) {
-    console.log('Error loading courses:', error);
-  }
-
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
       <main>
         <HeroSection />
         <FeatureSection />
-        <CourseCarousel isLoading={loading} />
+        <CourseCarousel />
         <SocialProof />
         <div className="py-12 md:py-16 lg:py-20 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto text-center">
