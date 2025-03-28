@@ -158,7 +158,9 @@ export async function uploadCourseResource(
 // Function to create a new course
 export async function createCourse(courseData: CourseCreationData): Promise<Course> {
   try {
+    console.log('Creating course with data:', courseData);
     const response = await api.post<Course>('/courses', courseData);
+    console.log('Course creation response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error creating course:', error);
