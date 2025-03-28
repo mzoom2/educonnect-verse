@@ -13,7 +13,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import CreateCourse from "./pages/CreateCourse";
 import AdminPanel from "./pages/AdminPanel";
@@ -33,7 +33,7 @@ function App() {
             
             {/* Protected Routes */}
             <Route element={<PrivateRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/create-course" element={<CreateCourse />} />
               <Route path="/admin" element={<AdminPanel />} />

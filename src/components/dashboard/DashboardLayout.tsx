@@ -62,7 +62,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <nav className="hidden lg:flex flex-1 items-center space-x-1">
             <Link to="/dashboard" className="px-3 py-2 text-sm rounded-md hover:bg-secondary transition-colors flex items-center">
               <Home size={16} className="mr-2" />
-              Dashboard
+              Home
             </Link>
             <Link to="/courses" className="px-3 py-2 text-sm rounded-md hover:bg-secondary transition-colors flex items-center">
               <BookOpen size={16} className="mr-2" />
@@ -196,7 +196,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               onClick={toggleSidebar}
             >
               <Home size={18} className="mr-3" />
-              Dashboard
+              Home
             </Link>
             <Link 
               to="/courses" 
