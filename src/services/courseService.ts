@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from 'react';
 import api from './api';
 import { useToast } from '@/hooks/use-toast';
@@ -30,19 +29,23 @@ export interface Course {
 }
 
 export interface PracticalTask {
-  id: string;
-  title: string;
+  id?: string;
+  title?: string;
   description: string;
-  requirements: string[];
-  points: number;
+  expectedOutcome: string;
+  reward: number;
+  requirements?: string[];
+  points?: number;
 }
 
 export interface QuizQuestion {
-  id: string;
+  id?: string;
   question: string;
   options: string[];
   correctAnswer: number;
-  points: number;
+  timeLimit: number;
+  reward: number;
+  points?: number;
 }
 
 export interface CourseLesson {
@@ -63,6 +66,11 @@ export interface CourseCreationData {
   duration: string;
   image: string;
   lessons: CourseLesson[];
+  difficulty?: string;
+  prerequisites?: string;
+  estimatedHours?: number;
+  imageUrl?: string;
+  isDraft?: boolean;
 }
 
 // Function to fetch all courses from API

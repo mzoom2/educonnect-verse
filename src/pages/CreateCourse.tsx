@@ -63,10 +63,12 @@ const courseSchema = z.object({
 });
 
 // Enhanced interface for lesson with quiz and practical task
-interface EnhancedLesson extends CourseLesson {
+interface EnhancedLesson extends Omit<CourseLesson, 'id' | 'order'> {
   videoFile?: File;
   pdfFile?: File;
   externalLinks: string[];
+  quiz?: QuizQuestion[];
+  practicalTask?: PracticalTask;
 }
 
 const CreateCourse = () => {
@@ -164,7 +166,7 @@ const CreateCourse = () => {
           expectedOutcome: "",
           reward: 200
         }
-      }));
+      })) as EnhancedLesson[];
       setLessons(emptyLessons);
       setCurrentStep(2);
     } else if (currentStep === 2) {
@@ -337,33 +339,34 @@ const CreateCourse = () => {
       // Upload course image if provided
       let imageUrl = '';
       if (courseImage) {
-        imageUrl = await uploadCourseMedia(courseImage, 'image');
+        imageUrl = await uploadCourseMedia(courseImage);
       }
       
       // Upload lesson files and prepare lesson data
-      const processedLessons = await Promise.all(lessons.map(async (lesson) => {
+      const processedLessons = await Promise.all(lessons.map(async (lesson, index) => {
         // Upload video if provided
         let videoUrl = '';
         if (lesson.videoFile) {
-          videoUrl = await uploadCourseMedia(lesson.videoFile, 'video');
+          videoUrl = await uploadCourseMedia(lesson.videoFile);
         }
         
         // Upload PDF if provided
         let pdfUrl = '';
         if (lesson.pdfFile) {
-          pdfUrl = await uploadCourseMedia(lesson.pdfFile, 'pdf');
+          pdfUrl = await uploadCourseMedia(lesson.pdfFile);
         }
         
         // Return processed lesson without the file objects
         return {
+          id: `lesson-${index}`, // Generate temporary ID
           title: lesson.title,
           content: lesson.content,
+          order: index, // Set order based on index
           videoUrl,
-          pdfUrl,
-          externalLinks: lesson.externalLinks.filter(link => link.trim() !== ''),
           quiz: lesson.quiz,
-          practicalTask: lesson.practicalTask
-        };
+          practicalTask: lesson.practicalTask,
+          externalLinks: lesson.externalLinks.filter(link => link.trim() !== '')
+        } as CourseLesson;
       }));
       
       // Prepare course data
@@ -375,8 +378,9 @@ const CreateCourse = () => {
         imageUrl,
         prerequisites: form.getValues().prerequisites,
         estimatedHours: parseInt(form.getValues().estimatedHours),
-        price: parseInt(form.getValues().price),
-        duration: parseInt(form.getValues().duration),
+        price: form.getValues().price,
+        duration: form.getValues().duration,
+        image: imageUrl,
         lessons: processedLessons,
         isDraft
       };
