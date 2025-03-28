@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { 
@@ -10,10 +10,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { useGetCourses } from '@/hooks/useApi';
 
 const Home = () => {
   const { toast } = useToast();
   const { user, isTeacher } = useAuth();
+  const { data: fetchedCourses, isLoading, error } = useGetCourses();
+  
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading courses",
+        description: "There was a problem loading your courses. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
   
   // Default courses for development
   const defaultCourses = [
@@ -49,8 +61,9 @@ const Home = () => {
     },
   ];
   
-  // Use default courses
-  const recentCourses = defaultCourses.slice(0, 3);
+  // Use fetched courses or default courses
+  const courses = fetchedCourses || defaultCourses;
+  const recentCourses = courses.slice(0, 3);
 
   return (
     <DashboardLayout>
@@ -143,9 +156,15 @@ const Home = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recentCourses.map((course) => (
-              <DashboardCourseCard key={course.id} {...course} />
-            ))}
+            {isLoading ? (
+              <p>Loading courses...</p>
+            ) : recentCourses.length > 0 ? (
+              recentCourses.map((course) => (
+                <DashboardCourseCard key={course.id} {...course} />
+              ))
+            ) : (
+              <p>No courses available. Try enrolling in some courses.</p>
+            )}
           </div>
         </div>
       </div>

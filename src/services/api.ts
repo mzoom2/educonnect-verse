@@ -43,4 +43,52 @@ api.interceptors.response.use(
   }
 );
 
+// Auth service for user management
+export const authService = {
+  login: async (email: string, password: string) => {
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+  
+  register: async (userData: any) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  },
+  
+  logout: () => {
+    localStorage.removeItem('token');
+    // Additional cleanup if needed
+  },
+  
+  getCurrentUser: async () => {
+    try {
+      const response = await api.get('/auth/me');
+      return response.data;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
+  },
+  
+  updateUser: async (userId: string, userData: any) => {
+    try {
+      const response = await api.put(`/users/${userId}`, userData);
+      return response.data;
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw error;
+    }
+  }
+};
+
 export default api;
