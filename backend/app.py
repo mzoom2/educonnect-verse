@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -768,5 +769,48 @@ def seed_data():
         }
     ]
     
-    # Create admin user
-    admin
+    # Create admin user if it doesn't exist
+    admin_email = "admin@skillversity.com"
+    admin_user = User.query.filter_by(email=admin_email).first()
+    if not admin_user:
+        admin_user = User(
+            email=admin_email,
+            password=generate_password_hash("admin123"),
+            username="Admin",
+            role="admin"
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+    
+    # Create sample courses
+    for course_data in sample_courses:
+        existing_course = Course.query.filter_by(title=course_data["title"]).first()
+        if not existing_course:
+            new_course = Course(
+                title=course_data["title"],
+                description=f"Detailed description for {course_data['title']}",
+                author=course_data["author"],
+                image=course_data["image"],
+                rating=course_data["rating"],
+                duration=course_data["duration"],
+                price=course_data["price"],
+                category=course_data["category"],
+                view_count=course_data["view_count"],
+                enrollment_count=course_data["enrollment_count"],
+                popularity_score=course_data["popularity_score"]
+            )
+            db.session.add(new_course)
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Database seeded successfully'}), 200
+
+# Main entry point
+if __name__ == "__main__":
+    with app.app_context():
+        # Create tables if they don't exist
+        db.create_all()
+    
+    # Start the app
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
