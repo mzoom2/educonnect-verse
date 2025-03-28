@@ -74,6 +74,79 @@ export interface CourseCreationData {
   isDraft?: boolean;
 }
 
+// Create a courseService object that wraps the API functions
+export const courseService = {
+  getAllCourses: async () => {
+    try {
+      const response = await api.get('/courses');
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Error fetching all courses:', error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch courses' 
+      };
+    }
+  },
+  
+  getCourseById: async (id: string) => {
+    try {
+      const response = await api.get(`/courses/${id}`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error(`Error fetching course ${id}:`, error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to fetch course' 
+      };
+    }
+  },
+  
+  searchCourses: async (query: string) => {
+    try {
+      const response = await api.get(`/courses/search?q=${query}`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error(`Error searching courses with query ${query}:`, error);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to search courses' 
+      };
+    }
+  },
+  
+  // Add other necessary methods that might be used in Home.tsx
+  createCourse: async (courseData: any) => {
+    try {
+      console.log('Creating course with data:', courseData);
+      
+      // Make sure author is present as it's required by backend
+      if (!courseData.author) {
+        // Try to get the current username if available
+        try {
+          const userResponse = await api.get('/auth/current-user');
+          courseData.author = userResponse.data.user.username || 'Unknown Author';
+        } catch (err) {
+          console.error('Error fetching current user for author:', err);
+          courseData.author = 'Unknown Author';
+        }
+      }
+      
+      const response = await api.post('/admin/courses', courseData);
+      console.log('Course creation successful, response:', response.data);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      console.error('Error creating course:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Request data sent:', courseData);
+      return { 
+        data: null, 
+        error: error.response?.data?.message || 'Failed to create course' 
+      };
+    }
+  }
+};
+
 // Function to fetch all courses from API
 export async function fetchCourses(): Promise<Course[]> {
   try {
