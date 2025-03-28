@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import CourseCarousel, { Course } from '@/components/dashboard/CourseCarousel';
+import CourseCarousel from '@/components/dashboard/CourseCarousel';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Search as SearchIcon } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
 import { 
   useAllCourses, 
   useSearchCourses,
@@ -21,10 +21,8 @@ const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const { courses, loading: coursesLoading } = useAllCourses();
-  // Explicitly type searchResults as Course[] | null
-  const { searchResults, loading: searchLoading } = useSearchCourses(searchTerm) as { searchResults: Course[] | null, loading: boolean };
+  const { searchResults, loading: searchLoading } = useSearchCourses(searchTerm);
   const [isSearching, setIsSearching] = useState(false);
-  const { toast } = useToast();
   
   // Get user's name from username, or fallback to "Student"
   const userName = user ? user.username : 'Student';
