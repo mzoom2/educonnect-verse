@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
@@ -131,6 +130,11 @@ export function useCoursesByCategory(category: string, immediate = true) {
 
 export function useCourseDetails(id: string, immediate = true) {
   return useApi(`/courses/${id}`, 'get', undefined, immediate);
+}
+
+// Add a specialized hook for teacher courses
+export function useTeacherCourses(immediate = true) {
+  return useApi('/api/teacher/courses', 'get', undefined, immediate);
 }
 
 // Admin specific hooks
