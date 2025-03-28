@@ -72,6 +72,7 @@ class Course(db.Model):
     view_count = db.Column(db.Integer, default=0)
     enrollment_count = db.Column(db.Integer, default=0)
     popularity_score = db.Column(db.Integer, default=0)
+    resource_url = db.Column(db.String(255))  # Added field for resource URL
     
     def to_dict(self):
         return {
@@ -87,7 +88,8 @@ class Course(db.Model):
             'createdAt': self.created_at.isoformat(),
             'viewCount': self.view_count,
             'enrollmentCount': self.enrollment_count,
-            'popularityScore': self.popularity_score
+            'popularityScore': self.popularity_score,
+            'resourceUrl': self.resource_url  # Include resource URL in the response
         }
 
 # Define activity log model for tracking user activities
@@ -356,12 +358,13 @@ def search_courses():
     
     return jsonify([course.to_dict() for course in courses]), 200
 
-# Admin-only routes
+# Routes for course creation (for both teachers and admins)
 @app.route('/api/admin/courses', methods=['POST'])
 @token_required
 def add_course(current_user):
-    if current_user.role != 'admin':
-        return jsonify({'message': 'Admin access required'}), 403
+    # Allow both teachers and admins to create courses
+    if current_user.role != 'admin' and current_user.role != 'teacher':
+        return jsonify({'message': 'You must be a teacher or admin to create courses'}), 403
     
     data = request.get_json()
     
@@ -369,43 +372,51 @@ def add_course(current_user):
     if not data or not data.get('title') or not data.get('author'):
         return jsonify({'message': 'Missing required fields'}), 400
     
-    new_course = Course(
-        title=data['title'],
-        description=data.get('description', ''),
-        author=data['author'],
-        image=data.get('image', ''),
-        rating=data.get('rating', 0.0),
-        duration=data.get('duration', ''),
-        price=data.get('price', ''),
-        category=data.get('category', ''),
-        view_count=data.get('viewCount', 0),
-        enrollment_count=data.get('enrollmentCount', 0),
-        popularity_score=data.get('popularityScore', 0)
-    )
-    
-    db.session.add(new_course)
-    db.session.commit()
-    
-    # Log the activity
-    log_activity = ActivityLog(
-        user_id=current_user.id,
-        action_type='course_create',
-        details=f"Admin created course: {new_course.title}"
-    )
-    db.session.add(log_activity)
-    db.session.commit()
-    
-    return jsonify(new_course.to_dict()), 201
+    try:
+        new_course = Course(
+            title=data['title'],
+            description=data.get('description', ''),
+            author=data['author'],
+            image=data.get('image', ''),
+            rating=data.get('rating', 0.0),
+            duration=data.get('duration', ''),
+            price=data.get('price', ''),
+            category=data.get('category', ''),
+            view_count=data.get('viewCount', 0),
+            enrollment_count=data.get('enrollmentCount', 0),
+            popularity_score=data.get('popularityScore', 0),
+            resource_url=data.get('resourceUrl', '')  # Added resource URL
+        )
+        
+        db.session.add(new_course)
+        db.session.commit()
+        
+        # Log the activity
+        log_activity = ActivityLog(
+            user_id=current_user.id,
+            action_type='course_create',
+            details=f"User created course: {new_course.title}"
+        )
+        db.session.add(log_activity)
+        db.session.commit()
+        
+        return jsonify(new_course.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating course: {str(e)}")
+        return jsonify({'message': f'Error creating course: {str(e)}'}), 500
 
 @app.route('/api/admin/courses/<course_id>', methods=['PUT'])
 @token_required
 def update_course(current_user, course_id):
-    if current_user.role != 'admin':
-        return jsonify({'message': 'Admin access required'}), 403
-    
+    # Allow both teachers (who own the course) and admins to update courses
     course = Course.query.get(course_id)
     if not course:
         return jsonify({'message': 'Course not found'}), 404
+    
+    # Check if user is the course author or an admin
+    if current_user.role != 'admin' and course.author != current_user.username and course.author != current_user.email:
+        return jsonify({'message': 'You can only update your own courses'}), 403
     
     data = request.get_json()
     
@@ -426,6 +437,8 @@ def update_course(current_user, course_id):
         course.price = data['price']
     if 'category' in data:
         course.category = data['category']
+    if 'resourceUrl' in data:
+        course.resource_url = data['resourceUrl']
     
     db.session.commit()
     
@@ -433,7 +446,7 @@ def update_course(current_user, course_id):
     log_activity = ActivityLog(
         user_id=current_user.id,
         action_type='course_update',
-        details=f"Admin updated course: {course.title}"
+        details=f"User updated course: {course.title}"
     )
     db.session.add(log_activity)
     db.session.commit()
@@ -443,12 +456,14 @@ def update_course(current_user, course_id):
 @app.route('/api/admin/courses/<course_id>', methods=['DELETE'])
 @token_required
 def delete_course(current_user, course_id):
-    if current_user.role != 'admin':
-        return jsonify({'message': 'Admin access required'}), 403
-    
+    # Allow both teachers (who own the course) and admins to delete courses
     course = Course.query.get(course_id)
     if not course:
         return jsonify({'message': 'Course not found'}), 404
+    
+    # Check if user is the course author or an admin
+    if current_user.role != 'admin' and course.author != current_user.username and course.author != current_user.email:
+        return jsonify({'message': 'You can only delete your own courses'}), 403
     
     course_title = course.title
     db.session.delete(course)
@@ -458,7 +473,7 @@ def delete_course(current_user, course_id):
     log_activity = ActivityLog(
         user_id=current_user.id,
         action_type='course_delete',
-        details=f"Admin deleted course: {course_title}"
+        details=f"User deleted course: {course_title}"
     )
     db.session.add(log_activity)
     db.session.commit()

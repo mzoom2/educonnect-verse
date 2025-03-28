@@ -17,6 +17,7 @@ export type Course = {
   viewCount?: number;
   enrollmentCount?: number;
   popularityScore?: number;
+  resourceUrl?: string; // Added for teacher uploaded resources
 };
 
 interface CourseCarouselProps {
@@ -53,7 +54,7 @@ const CourseCarousel = ({ title, courses, emptyMessage = "No courses available",
       }
       window.removeEventListener('resize', updateScrollButtons);
     };
-  }, []);
+  }, [courses]);
   
   const scroll = (direction: 'left' | 'right') => {
     if (!carouselRef.current) return;
@@ -79,7 +80,7 @@ const CourseCarousel = ({ title, courses, emptyMessage = "No courses available",
     );
   }
 
-  if (courses.length === 0) {
+  if (!courses || courses.length === 0) {
     return (
       <div className="space-y-4">
         {title && <h2 className="text-2xl font-bold tracking-tight">{title}</h2>}
