@@ -39,9 +39,37 @@ const TeacherCoursesList = () => {
   const [error, setError] = useState<string | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]);
   const [retryCount, setRetryCount] = useState(0);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  // Check backend status first
+  useEffect(() => {
+    const checkBackendStatus = async () => {
+      try {
+        // Use a simple endpoint to check if backend is reachable
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3000) // 3 second timeout
+        });
+        setBackendStatus('online');
+      } catch (err) {
+        console.error("Backend appears to be offline:", err);
+        setBackendStatus('offline');
+        setError('Unable to connect to the backend server. Please check if the server is running.');
+        setIsLoading(false);
+      }
+    };
+    
+    checkBackendStatus();
+  }, []);
 
   // Fetch courses with retry logic
   useEffect(() => {
+    // Only fetch courses if backend is online
+    if (backendStatus !== 'online' && backendStatus !== 'checking') {
+      return;
+    }
+    
     const fetchTeacherCourses = async () => {
       setIsLoading(true);
       setError(null);
@@ -55,7 +83,7 @@ const TeacherCoursesList = () => {
         }
         
         if (!response.data || !Array.isArray(response.data)) {
-          throw new Error('Invalid response format from API');
+          throw new Error('Invalid response format from API. Backend might be misconfigured.');
         }
         
         setTeacherCourses(response.data || []);
@@ -65,7 +93,7 @@ const TeacherCoursesList = () => {
         setRetryCount(0);
       } catch (err: any) {
         console.error('Failed to fetch teacher courses:', err);
-        setError(err.message || 'Failed to load courses. Please try again.');
+        setError(err.message || 'Failed to load courses. Backend server might be down.');
         toast({
           title: "Error Loading Courses",
           description: err.message || 'Failed to load courses. Please try again.',
@@ -77,7 +105,7 @@ const TeacherCoursesList = () => {
     };
     
     fetchTeacherCourses();
-  }, [toast, retryCount]);
+  }, [toast, retryCount, backendStatus]);
 
   const handleSort = (field: keyof TeacherCourse) => {
     if (field === sortField) {
@@ -89,19 +117,47 @@ const TeacherCoursesList = () => {
   };
 
   const refreshCourses = async () => {
-    setRetryCount(prev => prev + 1);
+    if (backendStatus === 'offline') {
+      // First try to check if backend is back online
+      setBackendStatus('checking');
+      try {
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3000)
+        });
+        setBackendStatus('online');
+        setRetryCount(prev => prev + 1);
+      } catch (err) {
+        setBackendStatus('offline');
+        toast({
+          title: "Backend Still Unavailable",
+          description: "The backend server is still unreachable. Please check if it's running.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setRetryCount(prev => prev + 1);
+    }
   };
   
   // Check if the error is likely due to network or server issue
   const isNetworkOrServerError = error?.includes('timeout') || 
                                 error?.includes('network') ||
-                                error?.includes('Server error');
+                                error?.includes('Server error') ||
+                                error?.includes('Unable to connect') ||
+                                backendStatus === 'offline';
   
   // Check if the error is likely due to permissions
   const isPermissionError = error?.includes('permission') || 
                            error?.includes('not have access') ||
                            error?.includes('401') || 
                            error?.includes('403');
+  
+  // Check if the error is likely due to missing implementation
+  const isMissingImplementationError = error?.includes('not found') ||
+                                      error?.includes('endpoint not found') ||
+                                      error?.includes('not implemented');
   
   // If there's an error, show error message with appropriate guidance
   if (error && !isLoading) {
@@ -110,9 +166,11 @@ const TeacherCoursesList = () => {
         <CardHeader>
           <CardTitle className="text-red-500">Error Loading Courses</CardTitle>
           <CardDescription>
-            There was a problem loading your courses. {isNetworkOrServerError ? 
-              'This may be due to network issues or server maintenance.' : 
-              'Please try again later.'}
+            {isNetworkOrServerError
+              ? 'Unable to connect to the backend server. Please verify the server is running.'
+              : isMissingImplementationError
+              ? 'The backend endpoint for teacher courses appears to be missing or not implemented.'
+              : 'There was a problem loading your courses. Please try again later.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -122,7 +180,24 @@ const TeacherCoursesList = () => {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
           
-          {isPermissionError ? (
+          {isNetworkOrServerError ? (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Please check if the backend server is running correctly. The application is trying to connect to: 
+                <code className="bg-slate-100 px-1 py-0.5 rounded mx-1">
+                  {import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}
+                </code>
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={refreshCourses} variant="outline">
+                  Check Connection Again
+                </Button>
+                <Button onClick={() => navigate('/dashboard')} className="bg-edu-blue">
+                  Go to Dashboard
+                </Button>
+              </div>
+            </div>
+          ) : isPermissionError ? (
             <div className="mt-4">
               <p className="text-sm text-muted-foreground mb-4">
                 It appears you might not have teacher permissions. 
@@ -134,6 +209,20 @@ const TeacherCoursesList = () => {
                 </Button>
                 <Button onClick={() => navigate('/profile')} className="bg-edu-blue">
                   Go to Profile
+                </Button>
+              </div>
+            </div>
+          ) : isMissingImplementationError ? (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                The teacher courses feature might not be fully implemented in the backend yet.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={refreshCourses} variant="outline">
+                  Try Again
+                </Button>
+                <Button onClick={() => navigate('/dashboard')} className="bg-edu-blue">
+                  Go to Dashboard
                 </Button>
               </div>
             </div>

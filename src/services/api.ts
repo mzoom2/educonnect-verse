@@ -280,10 +280,25 @@ export const courseService = {
     }
   },
   
-  // Teacher-specific functions
   getTeacherCourses: async () => {
     try {
       console.log('Fetching teacher courses from API...');
+      
+      // Add connection test before actual request
+      try {
+        // Ping the API with a simple request to check if it's reachable
+        await api.get('/health-check', { timeout: 3000 });
+      } catch (pingError: any) {
+        if (pingError.code === 'ECONNABORTED' || !pingError.response) {
+          console.error('API server appears to be unreachable:', pingError);
+          return { 
+            data: null, 
+            error: 'Unable to connect to the server. Please check your internet connection or try again later.' 
+          };
+        }
+      }
+      
+      // Proceed with actual request if ping succeeded
       const response = await api.get('/teacher/courses');
       console.log('Teacher courses fetched successfully:', response.data);
       return { data: response.data, error: null };
@@ -292,10 +307,10 @@ export const courseService = {
       console.error('Failed to fetch teacher courses:', error);
       
       // Check if the error is due to a network issue
-      if (error.code === 'ECONNABORTED') {
+      if (error.code === 'ECONNABORTED' || !error.response) {
         return { 
           data: null, 
-          error: 'Request timeout. Please check your network connection.' 
+          error: 'Unable to connect to the server. Please check your internet connection or try again later.' 
         };
       }
       
@@ -311,7 +326,7 @@ export const courseService = {
       if (error.response?.status === 404) {
         return { 
           data: null, 
-          error: 'Teacher courses endpoint not found. You may not have teacher access.' 
+          error: 'Teacher courses endpoint not found. The backend might not have implemented this feature yet.' 
         };
       }
       
@@ -325,7 +340,7 @@ export const courseService = {
       
       return { 
         data: null, 
-        error: error.response?.data?.message || 'Failed to fetch teacher courses. Please try again.' 
+        error: error.response?.data?.message || 'Failed to fetch teacher courses. Backend server might be down or misconfigured.' 
       };
     }
   },
