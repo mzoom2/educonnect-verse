@@ -58,6 +58,17 @@ api.interceptors.response.use(
   }
 );
 
+// Add health check function
+export const checkBackendHealth = async () => {
+  try {
+    const response = await api.get('/health-check', { timeout: 3000 });
+    return { online: true, data: response.data };
+  } catch (error) {
+    console.error('Backend health check failed:', error);
+    return { online: false, error };
+  }
+};
+
 // Auth service functions
 export const authService = {
   register: async (email: string, password: string, username: string) => {
@@ -284,18 +295,13 @@ export const courseService = {
     try {
       console.log('Fetching teacher courses from API...');
       
-      // Add connection test before actual request
-      try {
-        // Ping the API with a simple request to check if it's reachable
-        await api.get('/health-check', { timeout: 3000 });
-      } catch (pingError: any) {
-        if (pingError.code === 'ECONNABORTED' || !pingError.response) {
-          console.error('API server appears to be unreachable:', pingError);
-          return { 
-            data: null, 
-            error: 'Unable to connect to the server. Please check your internet connection or try again later.' 
-          };
-        }
+      // First check if backend is reachable
+      const healthCheck = await checkBackendHealth();
+      if (!healthCheck.online) {
+        return { 
+          data: null, 
+          error: 'Backend server appears to be offline. Please check if the server is running.' 
+        };
       }
       
       // Proceed with actual request if ping succeeded
