@@ -43,4 +43,72 @@ api.interceptors.response.use(
   }
 );
 
+// Authentication service
+export const authService = {
+  // Check if user is authenticated
+  isAuthenticated: () => {
+    return localStorage.getItem('token') !== null;
+  },
+  
+  // Login function
+  login: async (email: string, password: string) => {
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', response.data.token);
+      return { error: null, data: response.data };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      return { error: errorMessage, data: null };
+    }
+  },
+  
+  // Register function
+  register: async (email: string, password: string, username: string) => {
+    try {
+      const response = await api.post('/auth/register', { email, password, username });
+      return { error: null, data: response.data };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Registration failed';
+      return { error: errorMessage, data: null };
+    }
+  },
+  
+  // Logout function
+  logout: () => {
+    localStorage.removeItem('token');
+  },
+  
+  // Get current user data
+  getCurrentUser: async () => {
+    try {
+      const response = await api.get('/auth/me');
+      return { error: null, data: response.data };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to get user data';
+      return { error: errorMessage, data: null };
+    }
+  },
+  
+  // Verify auth token
+  verifyToken: async () => {
+    try {
+      const response = await api.get('/auth/verify');
+      return { valid: true, data: response.data };
+    } catch (error) {
+      return { valid: false, data: null };
+    }
+  },
+  
+  // Update user metadata
+  updateUserMetadata: async (userId: number, metadata: any) => {
+    try {
+      const response = await api.put(`/users/${userId}/metadata`, { metadata });
+      return { error: null, data: response.data };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to update user metadata';
+      return { error: errorMessage, data: null };
+    }
+  }
+};
+
 export default api;
