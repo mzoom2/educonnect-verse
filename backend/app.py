@@ -770,5 +770,5 @@ def seed_data():
         }
     ]
     
-    # Create admin user
-    admin_exists = User.query.filter_by(email='m
+    # Check if admin user exists
+    admin_exists = User.query.filter_by(
