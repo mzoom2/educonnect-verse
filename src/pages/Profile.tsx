@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -16,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link } from 'react-router-dom';
 import { useApi } from '@/hooks/useApi';
+import TeacherCoursesList from '@/components/dashboard/TeacherCoursesList';
 
 // Form schema for becoming a teacher
 const teacherFormSchema = z.object({
@@ -31,7 +31,7 @@ const teacherFormSchema = z.object({
 });
 
 const Profile = () => {
-  const { user, refreshUserData } = useAuth();
+  const { user, refreshUserData, isTeacher } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTeacherForm, setShowTeacherForm] = useState(false);
@@ -133,6 +133,13 @@ const Profile = () => {
     <DashboardLayout>
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
+        
+        {isTeacher ? (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Teacher Dashboard</h2>
+            <TeacherCoursesList />
+          </div>
+        ) : null}
         
         <div className="grid gap-8 md:grid-cols-3">
           {/* User Information Card */}
@@ -279,18 +286,20 @@ const Profile = () => {
           </Card>
 
           {/* Courses Progress (Placeholder) */}
-          <Card className="md:col-span-3">
-            <CardHeader>
-              <CardTitle>Your Learning Progress</CardTitle>
-              <CardDescription>Track your learning journey and course progress</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="py-10 text-center text-muted-foreground">
-                <p>You haven't enrolled in any courses yet.</p>
-                <Button variant="outline" className="mt-4">Browse Courses</Button>
-              </div>
-            </CardContent>
-          </Card>
+          {!isTeacher && (
+            <Card className="md:col-span-3">
+              <CardHeader>
+                <CardTitle>Your Learning Progress</CardTitle>
+                <CardDescription>Track your learning journey and course progress</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="py-10 text-center text-muted-foreground">
+                  <p>You haven't enrolled in any courses yet.</p>
+                  <Button variant="outline" className="mt-4">Browse Courses</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </DashboardLayout>
