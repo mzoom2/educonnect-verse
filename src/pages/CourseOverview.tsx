@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { 
-  BookOpen, Award, Clock, FileText, 
+  BookOpen, Award, Clock, FileText, // Fixed the FileText import here too
   TrendingUp, Activity, Star 
 } from 'lucide-react';
 import DashboardCourseCard from '@/components/dashboard/DashboardCourseCard';

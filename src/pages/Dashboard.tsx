@@ -7,7 +7,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { 
   BookOpen, Layers, Users, TrendingUp, 
-  Clock, Activity, Plus, Award, Star 
+  Clock, Activity, Plus, Award, Star,
+  FileText // Added missing FileText icon import
 } from 'lucide-react';
 import DashboardCourseCard from '@/components/dashboard/DashboardCourseCard';
 import CourseCarousel from '@/components/dashboard/CourseCarousel';
