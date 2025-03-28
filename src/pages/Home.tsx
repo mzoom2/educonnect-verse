@@ -26,7 +26,20 @@ const Home = () => {
         
         if (response.data) {
           console.log('Courses loaded:', response.data);
-          setCourses(response.data);
+          
+          // Process image URLs to ensure they have the full base URL if needed
+          const processedCourses = response.data.map(course => {
+            if (course.image && !course.image.startsWith('http')) {
+              // If the image path is relative, prepend the base URL
+              const baseUrl = window.location.origin;
+              course.image = course.image.startsWith('/') 
+                ? `${baseUrl}${course.image}`
+                : `${baseUrl}/${course.image}`;
+            }
+            return course;
+          });
+          
+          setCourses(processedCourses);
         } else {
           console.error('Failed to load courses:', response.error);
           toast({

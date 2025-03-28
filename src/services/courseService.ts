@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import api from './api';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export interface CourseResource {
   id: string;
@@ -79,6 +80,7 @@ export const courseService = {
   getAllCourses: async () => {
     try {
       const response = await api.get('/courses');
+      console.log('Courses loaded from API:', response.data);
       return { data: response.data, error: null };
     } catch (error: any) {
       console.error('Error fetching all courses:', error);
@@ -115,7 +117,7 @@ export const courseService = {
     }
   },
   
-  // Add other necessary methods that might be used in Home.tsx
+  // Create course with proper image handling
   createCourse: async (courseData: any) => {
     try {
       console.log('Creating course with data:', courseData);
@@ -132,6 +134,16 @@ export const courseService = {
         }
       }
       
+      // Ensure image field includes the full URL path if it's a local upload
+      if (courseData.image && !courseData.image.startsWith('http')) {
+        // If the image path is relative, make sure it includes the full base URL
+        const baseUrl = window.location.origin;
+        courseData.image = courseData.image.startsWith('/') 
+          ? `${baseUrl}${courseData.image}`
+          : `${baseUrl}/${courseData.image}`;
+        console.log('Adjusted image URL:', courseData.image);
+      }
+      
       const response = await api.post('/admin/courses', courseData);
       console.log('Course creation successful, response:', response.data);
       return { data: response.data, error: null };
@@ -143,6 +155,45 @@ export const courseService = {
         data: null, 
         error: error.response?.data?.message || 'Failed to create course' 
       };
+    }
+  },
+  
+  // Upload course media with unique filename generation
+  uploadCourseMedia: async (file: File, courseId?: string): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      if (courseId) {
+        formData.append('course_id', courseId);
+      }
+      
+      // Generate a unique identifier for this upload
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      formData.append('unique_id', uniqueId);
+      formData.append('folder', 'course-media');
+      
+      console.log('Uploading course media with unique ID:', uniqueId);
+      
+      const response = await api.post<{ fileUrl: string }>('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('File uploaded successfully:', response.data.fileUrl);
+      
+      // Make sure the returned URL is an absolute URL
+      const fileUrl = response.data.fileUrl;
+      if (fileUrl.startsWith('/')) {
+        const baseUrl = window.location.origin;
+        return `${baseUrl}${fileUrl}`;
+      }
+      
+      return fileUrl;
+    } catch (error) {
+      console.error('Error uploading course media:', error);
+      throw error;
     }
   }
 };
@@ -246,6 +297,16 @@ export async function createCourse(courseData: CourseCreationData): Promise<Cour
       }
     }
     
+    // Ensure image field includes the full URL path if it's a local upload
+    if (courseData.image && !courseData.image.startsWith('http')) {
+      // If the image path is relative, make sure it includes the full base URL
+      const baseUrl = window.location.origin;
+      courseData.image = courseData.image.startsWith('/') 
+        ? `${baseUrl}${courseData.image}`
+        : `${baseUrl}/${courseData.image}`;
+      console.log('Adjusted image URL:', courseData.image);
+    }
+    
     const response = await api.post<Course>('/admin/courses', courseData);
     console.log('Course creation successful, response:', response.data);
     return response.data;
@@ -278,7 +339,12 @@ export async function uploadCourseMedia(file: File, courseId?: string): Promise<
       formData.append('course_id', courseId);
     }
     
+    // Generate a unique identifier for this upload
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    formData.append('unique_id', uniqueId);
     formData.append('folder', 'course-media');
+    
+    console.log('Uploading course media with unique ID:', uniqueId);
     
     const response = await api.post<{ fileUrl: string }>('/upload', formData, {
       headers: {
@@ -286,7 +352,16 @@ export async function uploadCourseMedia(file: File, courseId?: string): Promise<
       },
     });
     
-    return response.data.fileUrl;
+    console.log('File uploaded successfully:', response.data.fileUrl);
+    
+    // Make sure the returned URL is an absolute URL
+    const fileUrl = response.data.fileUrl;
+    if (fileUrl.startsWith('/')) {
+      const baseUrl = window.location.origin;
+      return `${baseUrl}${fileUrl}`;
+    }
+    
+    return fileUrl;
   } catch (error) {
     console.error('Error uploading course media:', error);
     throw error;
