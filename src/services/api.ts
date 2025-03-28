@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Create an axios instance with default config
@@ -284,12 +283,49 @@ export const courseService = {
   // Teacher-specific functions
   getTeacherCourses: async () => {
     try {
+      console.log('Fetching teacher courses from API...');
       const response = await api.get('/teacher/courses');
+      console.log('Teacher courses fetched successfully:', response.data);
       return { data: response.data, error: null };
     } catch (error: any) {
+      // Enhanced error logging
+      console.error('Failed to fetch teacher courses:', error);
+      
+      // Check if the error is due to a network issue
+      if (error.code === 'ECONNABORTED') {
+        return { 
+          data: null, 
+          error: 'Request timeout. Please check your network connection.' 
+        };
+      }
+      
+      // Check if it's a server error
+      if (error.response?.status >= 500) {
+        return { 
+          data: null, 
+          error: 'Server error. Our team has been notified and is working on it.' 
+        };
+      }
+      
+      // Check if it's a 404 - Resource not found
+      if (error.response?.status === 404) {
+        return { 
+          data: null, 
+          error: 'Teacher courses endpoint not found. You may not have teacher access.' 
+        };
+      }
+      
+      // Check if it's a 401/403 - Authentication error
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        return { 
+          data: null, 
+          error: 'You do not have permission to access teacher courses. Please verify your account status.' 
+        };
+      }
+      
       return { 
         data: null, 
-        error: error.response?.data?.message || 'Failed to fetch teacher courses' 
+        error: error.response?.data?.message || 'Failed to fetch teacher courses. Please try again.' 
       };
     }
   },

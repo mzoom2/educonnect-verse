@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -39,21 +38,31 @@ const TeacherCoursesList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Fetch courses directly using the courseService
+  // Fetch courses with retry logic
   useEffect(() => {
     const fetchTeacherCourses = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
+        console.log(`Fetching teacher courses... (Attempt ${retryCount + 1})`);
         const response = await courseService.getTeacherCourses();
         
         if (response.error) {
           throw new Error(response.error);
         }
         
+        if (!response.data || !Array.isArray(response.data)) {
+          throw new Error('Invalid response format from API');
+        }
+        
         setTeacherCourses(response.data || []);
+        console.log('Successfully loaded teacher courses:', response.data.length);
+        
+        // Reset retry count on success
+        setRetryCount(0);
       } catch (err: any) {
         console.error('Failed to fetch teacher courses:', err);
         setError(err.message || 'Failed to load courses. Please try again.');
@@ -68,7 +77,7 @@ const TeacherCoursesList = () => {
     };
     
     fetchTeacherCourses();
-  }, [toast]);
+  }, [toast, retryCount]);
 
   const handleSort = (field: keyof TeacherCourse) => {
     if (field === sortField) {
@@ -80,42 +89,30 @@ const TeacherCoursesList = () => {
   };
 
   const refreshCourses = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await courseService.getTeacherCourses();
-      
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      
-      setTeacherCourses(response.data || []);
-      toast({
-        title: "Courses Refreshed",
-        description: "Your course list has been updated.",
-      });
-    } catch (err: any) {
-      console.error('Failed to refresh teacher courses:', err);
-      setError(err.message || 'Failed to refresh courses. Please try again.');
-      toast({
-        title: "Error Refreshing Courses",
-        description: err.message || 'Failed to refresh courses. Please try again.',
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    setRetryCount(prev => prev + 1);
   };
   
-  // If there's an error, show error message
+  // Check if the error is likely due to network or server issue
+  const isNetworkOrServerError = error?.includes('timeout') || 
+                                error?.includes('network') ||
+                                error?.includes('Server error');
+  
+  // Check if the error is likely due to permissions
+  const isPermissionError = error?.includes('permission') || 
+                           error?.includes('not have access') ||
+                           error?.includes('401') || 
+                           error?.includes('403');
+  
+  // If there's an error, show error message with appropriate guidance
   if (error && !isLoading) {
     return (
       <Card className="border-red-200">
         <CardHeader>
           <CardTitle className="text-red-500">Error Loading Courses</CardTitle>
           <CardDescription>
-            There was a problem loading your courses. Please try again later.
+            There was a problem loading your courses. {isNetworkOrServerError ? 
+              'This may be due to network issues or server maintenance.' : 
+              'Please try again later.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -124,9 +121,32 @@ const TeacherCoursesList = () => {
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <Button onClick={refreshCourses} variant="outline" className="mt-2">
-            Try Again
-          </Button>
+          
+          {isPermissionError ? (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                It appears you might not have teacher permissions. 
+                Please check your account status in your profile page.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={refreshCourses} variant="outline">
+                  Try Again
+                </Button>
+                <Button onClick={() => navigate('/profile')} className="bg-edu-blue">
+                  Go to Profile
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <Button onClick={refreshCourses} variant="outline" className="mr-2">
+                Try Again
+              </Button>
+              <Button onClick={() => navigate('/dashboard')} variant="outline">
+                Back to Dashboard
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -162,6 +182,7 @@ const TeacherCoursesList = () => {
 
   return (
     <div className="space-y-6">
+      {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
