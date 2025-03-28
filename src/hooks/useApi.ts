@@ -1,13 +1,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import api from '@/services/api';
+import api, { checkBackendAvailability } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 
 type ApiRequestState<T> = {
   data: T | null;
   isLoading: boolean;
   error: string | null;
+  isBackendAvailable: boolean;
 };
 
 type ApiMethod = 'get' | 'post' | 'put' | 'delete';
@@ -18,12 +19,39 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
     data: null,
     isLoading: immediate,
     error: null,
+    isBackendAvailable: true,
   });
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const fetchData = useCallback(async (newBody?: unknown) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    // First check if backend is available
+    const backendAvailable = await checkBackendAvailability();
+    
+    if (!backendAvailable) {
+      setState({
+        data: null,
+        isLoading: false,
+        error: 'Unable to connect to the backend server. Please check your connection or try again later.',
+        isBackendAvailable: false,
+      });
+      
+      if (showErrorToast) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the backend server. Please check your connection or try again later.",
+          variant: "destructive",
+        });
+      }
+      
+      return { 
+        data: null, 
+        error: 'Backend server unavailable', 
+        isBackendAvailable: false 
+      };
+    }
     
     try {
       const requestBody = newBody || body;
@@ -54,9 +82,10 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
         data: response.data,
         isLoading: false,
         error: null,
+        isBackendAvailable: true,
       });
       
-      return { data: response.data, error: null };
+      return { data: response.data, error: null, isBackendAvailable: true };
     } catch (error: any) {
       console.error(`Error during ${method.toUpperCase()} request to ${url}:`, error);
       
@@ -68,6 +97,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
         data: null,
         isLoading: false,
         error: errorMessage,
+        isBackendAvailable: true, // We know backend is available but the request failed
       });
       
       // Handle authentication errors
@@ -84,7 +114,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
         });
       }
       
-      return { data: null, error: errorMessage };
+      return { data: null, error: errorMessage, isBackendAvailable: true };
     }
   }, [url, method, body, toast, showErrorToast, navigate]);
 

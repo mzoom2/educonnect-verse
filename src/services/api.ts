@@ -58,6 +58,38 @@ api.interceptors.response.use(
   }
 );
 
+// Function to check if the backend is available
+export const checkBackendAvailability = async (): Promise<boolean> => {
+  try {
+    // Try the health-check endpoint first
+    try {
+      await api.get('/health-check', { timeout: 3000 });
+      console.log('Backend is online (health-check endpoint)');
+      return true;
+    } catch (healthCheckError) {
+      console.log('Health-check endpoint not available, trying an alternative endpoint');
+      
+      // If health-check fails, try a known endpoint as fallback
+      // This helps if the backend doesn't have a health-check endpoint
+      try {
+        await api.get('/courses', { 
+          params: { limit: 1 }, // Request minimal data
+          timeout: 3000 
+        });
+        console.log('Backend is online (courses endpoint)');
+        return true;
+      } catch (fallbackError) {
+        // If both checks fail, the server is likely offline
+        console.error('Backend appears to be offline');
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error('Error checking backend availability:', error);
+    return false;
+  }
+};
+
 // Auth service functions
 export const authService = {
   register: async (email: string, password: string, username: string) => {

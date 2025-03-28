@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Users, Calendar, Edit, BarChart, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { courseService } from '@/services/api';
+import { checkBackendAvailability } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,32 +42,32 @@ const TeacherCoursesList = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
-  // Check backend status first
+  // Check backend status first using our improved function
   useEffect(() => {
-    const checkBackendStatus = async () => {
+    const verifyBackendStatus = async () => {
       try {
-        // Use a simple endpoint to check if backend is reachable
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(3000) // 3 second timeout
-        });
-        setBackendStatus('online');
+        const isBackendAvailable = await checkBackendAvailability();
+        setBackendStatus(isBackendAvailable ? 'online' : 'offline');
+        
+        if (!isBackendAvailable) {
+          setError('Unable to connect to the backend server. Please check if the server is running.');
+          setIsLoading(false);
+        }
       } catch (err) {
-        console.error("Backend appears to be offline:", err);
+        console.error("Error checking backend status:", err);
         setBackendStatus('offline');
-        setError('Unable to connect to the backend server. Please check if the server is running.');
+        setError('Unable to determine backend status. Please check your connection.');
         setIsLoading(false);
       }
     };
     
-    checkBackendStatus();
-  }, []);
+    verifyBackendStatus();
+  }, [retryCount]);
 
   // Fetch courses with retry logic
   useEffect(() => {
     // Only fetch courses if backend is online
-    if (backendStatus !== 'online' && backendStatus !== 'checking') {
+    if (backendStatus !== 'online') {
       return;
     }
     
@@ -118,24 +119,9 @@ const TeacherCoursesList = () => {
 
   const refreshCourses = async () => {
     if (backendStatus === 'offline') {
-      // First try to check if backend is back online
+      // Try to check if backend is back online
       setBackendStatus('checking');
-      try {
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(3000)
-        });
-        setBackendStatus('online');
-        setRetryCount(prev => prev + 1);
-      } catch (err) {
-        setBackendStatus('offline');
-        toast({
-          title: "Backend Still Unavailable",
-          description: "The backend server is still unreachable. Please check if it's running.",
-          variant: "destructive",
-        });
-      }
+      setRetryCount(prev => prev + 1);
     } else {
       setRetryCount(prev => prev + 1);
     }
