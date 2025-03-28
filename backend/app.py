@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -49,6 +50,7 @@ db.init_app(app)
 
 # Define User model
 class User(db.Model):
+    # ... keep existing code (User model definition)
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
@@ -71,6 +73,7 @@ class User(db.Model):
 
 # Define Course model
 class Course(db.Model):
+    # ... keep existing code (Course model definition)
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
@@ -106,6 +109,7 @@ class Course(db.Model):
 
 # Define Course Resource model for storing uploaded files info
 class CourseResource(db.Model):
+    # ... keep existing code (CourseResource model definition)
     id = db.Column(db.Integer, primary_key=True)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
     name = db.Column(db.String(255), nullable=False)
@@ -126,6 +130,7 @@ class CourseResource(db.Model):
 
 # Define activity log model for tracking user activities
 class ActivityLog(db.Model):
+    # ... keep existing code (ActivityLog model definition)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     action_type = db.Column(db.String(50), nullable=False)  # e.g., 'login', 'course_view', 'enrollment'
@@ -143,6 +148,7 @@ class ActivityLog(db.Model):
 
 # JWT token authentication
 def token_required(f):
+    # ... keep existing code (token_required function)
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
@@ -183,6 +189,7 @@ def health_check():
 # Routes for authentication
 @app.route('/api/auth/register', methods=['POST'])
 def register_user():
+    # ... keep existing code (register_user function)
     data = request.get_json()
     
     # Validate input data
@@ -216,6 +223,7 @@ def register_user():
     
     return jsonify({'message': 'User registered successfully'}), 201
 
+# ... keep existing code (all other route handlers)
 @app.route('/api/auth/login', methods=['POST'])
 def login_user():
     data = request.get_json()
@@ -262,6 +270,7 @@ def get_current_user(current_user):
 @app.route('/api/auth/users/<int:user_id>/metadata', methods=['PUT'])
 @token_required
 def update_user_metadata(current_user, user_id):
+    # ... keep existing code (update_user_metadata function)
     # Ensure user can only update their own metadata
     if current_user.id != user_id and current_user.role != 'admin':
         return jsonify({'message': 'Unauthorized to update this user\'s metadata'}), 403
@@ -297,6 +306,7 @@ def update_user_metadata(current_user, user_id):
 @app.route('/api/auth/users/<int:user_id>/apply-teacher', methods=['POST'])
 @token_required
 def apply_as_teacher(current_user, user_id):
+    # ... keep existing code (apply_as_teacher function)
     # Ensure user can only apply for themselves
     if current_user.id != user_id:
         return jsonify({'message': 'Unauthorized to submit application for another user'}), 403
@@ -345,6 +355,7 @@ def apply_as_teacher(current_user, user_id):
 @app.route('/api/upload', methods=['POST'])
 @token_required
 def upload_file(current_user):
+    # ... keep existing code (upload_file function)
     try:
         # Check if file is included in the request
         if 'file' not in request.files:
@@ -445,6 +456,7 @@ def get_all_courses():
 
 @app.route('/api/courses/<course_id>', methods=['GET'])
 def get_course(course_id):
+    # ... keep existing code (get_course function)
     course = Course.query.get(course_id)
     if not course:
         return jsonify({'message': 'Course not found'}), 404
@@ -481,6 +493,7 @@ def get_courses_by_category(category):
 
 @app.route('/api/courses/search', methods=['GET'])
 def search_courses():
+    # ... keep existing code (search_courses function)
     query = request.args.get('q', '')
     if not query:
         return jsonify([]), 200
@@ -504,6 +517,7 @@ def get_course_resources(course_id):
 @app.route('/api/courses/<course_id>/resources', methods=['POST'])
 @token_required
 def add_course_resource(current_user, course_id):
+    # ... keep existing code (add_course_resource function)
     # Ensure the user has permission (teacher or admin)
     if current_user.role not in ['teacher', 'admin']:
         return jsonify({'message': 'Unauthorized to add resources'}), 403
@@ -533,6 +547,7 @@ def add_course_resource(current_user, course_id):
 @app.route('/api/admin/courses', methods=['POST'])
 @token_required
 def add_course(current_user):
+    # ... keep existing code (add_course function)
     # Log everything for debugging
     logger.debug(f"Add course request from user {current_user.id} with role {current_user.role}")
     logger.debug(f"Request data: {request.get_json()}")
@@ -595,6 +610,7 @@ def add_course(current_user):
 @app.route('/api/admin/courses/<course_id>', methods=['PUT'])
 @token_required
 def update_course(current_user, course_id):
+    # ... keep existing code (update_course function)
     if current_user.role != 'admin' and current_user.role != 'teacher':
         return jsonify({'message': 'Admin or teacher access required'}), 403
     
@@ -639,6 +655,7 @@ def update_course(current_user, course_id):
 @app.route('/api/admin/courses/<course_id>', methods=['DELETE'])
 @token_required
 def delete_course(current_user, course_id):
+    # ... keep existing code (delete_course function)
     if current_user.role != 'admin' and current_user.role != 'teacher':
         return jsonify({'message': 'Admin or teacher access required'}), 403
     
@@ -666,6 +683,7 @@ def delete_course(current_user, course_id):
 @app.route('/api/admin/dashboard', methods=['GET'])
 @token_required
 def get_admin_dashboard(current_user):
+    # ... keep existing code (get_admin_dashboard function)
     if current_user.role != 'admin':
         return jsonify({'message': 'Admin access required'}), 403
     
@@ -747,6 +765,7 @@ def verify_token(current_user):
 
 @app.route('/api/ensure-data', methods=['GET'])
 def ensure_data():
+    # ... keep existing code (ensure_data function)
     # Check if any courses exist
     course_count = Course.query.count()
     
@@ -778,28 +797,11 @@ def ensure_data():
         'course_count': course_count
     }), 200
 
-# Add teacher courses endpoints
-@app.route('/api/teacher/courses', methods=['GET', 'OPTIONS'])
-@token_required
-def get_teacher_courses(current_user):
-    # Handle OPTIONS request for CORS preflight
-    if request.method == 'OPTIONS':
-        return '', 200
-    
-    # Check if user is a teacher
-    if current_user.role != 'teacher' and current_user.role != 'admin':
-        return jsonify({'message': 'Teacher or admin access required'}), 403
-    
-    try:
-        logger.info(f"Fetching courses for teacher {current_user.id}")
-        
-        # Find courses where this user is the author
-        courses = Course.query.all()
-        teacher_courses = []
-        
-        for course in courses:
-            # For this endpoint, we'll show detailed course information for teachers
-            course_dict = course.to_dict()
-            
-            # Add last updated date
-            course_dict['lastUpdated'] = course.created_at.strftime('%
+# Create database tables on startup
+with app.app_context():
+    db.create_all()
+    logger.info("Database tables created (if they didn't exist already)")
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+
