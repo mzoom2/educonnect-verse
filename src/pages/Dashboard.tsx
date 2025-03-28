@@ -7,27 +7,135 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, Search as SearchIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { 
-  useAllCourses, 
-  useSearchCourses,
-  getRecentlyViewedCourses,
-  getPopularCourses,
-  getRecommendedCourses,
-  getInDemandCourses,
-  getCategoryCourseCount
-} from '@/services/courseService';
+import { useToast } from '@/hooks/use-toast';
+
+// Sample course data for dashboard
+const sampleCourses = [
+  {
+    id: '1',
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    title: "Introduction to Machine Learning with Python",
+    author: "Dr. Sarah Johnson",
+    rating: 4.8,
+    duration: "8 weeks",
+    price: "₦15,000",
+    category: "Data Science",
+    createdAt: "2023-05-10T10:30:00Z",
+    viewCount: 1250,
+    enrollmentCount: 562,
+    popularityScore: 89
+  },
+  {
+    id: '2',
+    image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&auto=format&fit=crop&w=1206&q=80",
+    title: "Modern Web Development: React & Node.js",
+    author: "Michael Chen",
+    rating: 4.7,
+    duration: "10 weeks",
+    price: "₦18,000",
+    category: "Programming",
+    createdAt: "2023-06-15T14:45:00Z",
+    viewCount: 980,
+    enrollmentCount: 421,
+    popularityScore: 76
+  },
+  {
+    id: '3',
+    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    title: "Fundamentals of UI/UX Design",
+    author: "Emma Thompson",
+    rating: 4.9,
+    duration: "6 weeks",
+    price: "₦14,500",
+    category: "Design",
+    createdAt: "2023-04-20T09:15:00Z",
+    viewCount: 1520,
+    enrollmentCount: 689,
+    popularityScore: 92
+  },
+  {
+    id: '4',
+    image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    title: "Digital Marketing Fundamentals",
+    author: "Jessica Adams",
+    rating: 4.6,
+    duration: "6 weeks",
+    price: "₦12,500",
+    category: "Marketing",
+    createdAt: "2023-07-05T11:20:00Z",
+    viewCount: 750,
+    enrollmentCount: 310,
+    popularityScore: 68
+  },
+  {
+    id: '5',
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    title: "Financial Planning & Investment Strategies",
+    author: "Robert Williams",
+    rating: 4.9,
+    duration: "4 weeks",
+    price: "₦20,000",
+    category: "Finance",
+    createdAt: "2023-03-12T16:30:00Z",
+    viewCount: 950,
+    enrollmentCount: 405,
+    popularityScore: 81
+  },
+  {
+    id: '6',
+    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    title: "Data Analytics for Business Decision-Making",
+    author: "Daniel Morgan",
+    rating: 4.7,
+    duration: "9 weeks",
+    price: "₦19,500",
+    category: "Business",
+    createdAt: "2023-02-28T13:10:00Z",
+    viewCount: 1100,
+    enrollmentCount: 470,
+    popularityScore: 85
+  }
+];
+
+// Helper functions for course filtering
+const getRecentlyViewedCourses = (courses) => {
+  return [...courses].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 6);
+};
+
+const getPopularCourses = (courses) => {
+  return [...courses].sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0)).slice(0, 6);
+};
+
+const getRecommendedCourses = (courses) => {
+  return [...courses].sort((a, b) => b.rating - a.rating).slice(0, 6);
+};
+
+const getInDemandCourses = (courses) => {
+  return [...courses].sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0)).slice(0, 6);
+};
+
+const getCategoryCourseCount = (courses) => {
+  const categories = {};
+  
+  courses.forEach(course => {
+    if (course.category) {
+      categories[course.category] = (categories[course.category] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(categories).map(([name, count]) => ({ name, count }));
+};
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const { courses, loading: coursesLoading } = useAllCourses();
-  const { searchResults, loading: searchLoading } = useSearchCourses(searchTerm);
   const [isSearching, setIsSearching] = useState(false);
+  const { toast } = useToast();
   
   // Get user's name from username, or fallback to "Student"
   const userName = user ? user.username : 'Student';
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(!!searchTerm.trim());
   };
@@ -37,22 +145,20 @@ const Dashboard = () => {
     setIsSearching(false);
   };
 
-  if (coursesLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-edu-blue"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Search functionality with mock data
+  const searchResults = isSearching ? 
+    sampleCourses.filter(course => 
+      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.author.toLowerCase().includes(searchTerm.toLowerCase())
+    ) : [];
 
   // Get courses for different sections
-  const recentlyViewedCourses = getRecentlyViewedCourses(courses || []);
-  const popularCourses = getPopularCourses(courses || []);
-  const recommendedCourses = getRecommendedCourses(courses || []);
-  const inDemandCourses = getInDemandCourses(courses || []);
-  const categoryData = getCategoryCourseCount(courses || []);
+  const recentlyViewedCourses = getRecentlyViewedCourses(sampleCourses);
+  const popularCourses = getPopularCourses(sampleCourses);
+  const recommendedCourses = getRecommendedCourses(sampleCourses);
+  const inDemandCourses = getInDemandCourses(sampleCourses);
+  const categoryData = getCategoryCourseCount(sampleCourses);
 
   return (
     <DashboardLayout>
@@ -105,16 +211,10 @@ const Dashboard = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl md:text-2xl font-semibold">Search Results</h2>
               </div>
-              {searchLoading ? (
-                <div className="flex justify-center py-10">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-edu-blue"></div>
-                </div>
-              ) : (
-                <CourseCarousel 
-                  courses={searchResults || []} 
-                  emptyMessage={"No courses matching your search criteria"} 
-                />
-              )}
+              <CourseCarousel 
+                courses={searchResults} 
+                emptyMessage={"No courses matching your search criteria"} 
+              />
             </section>
           )}
 

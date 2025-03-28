@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
@@ -51,8 +50,8 @@ const CourseCarousel = ({ customCourses, isLoading = false }: CourseCarouselProp
     }
   };
   
-  // Default courses to show
-  const courses = [
+  // Default courses to show if no custom courses are provided
+  const defaultCourses = [
     {
       id: '1',
       image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
@@ -115,8 +114,8 @@ const CourseCarousel = ({ customCourses, isLoading = false }: CourseCarouselProp
     }
   ];
 
-  // Determine which courses to display
-  const displayCourses = isLoading ? [] : (customCourses && customCourses.length > 0 ? customCourses : courses);
+  // Determine which courses to display - defaulting to our preset list if API fails
+  const displayCourses = isLoading ? [] : (customCourses && customCourses.length > 0 ? customCourses : defaultCourses);
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">
