@@ -133,6 +133,11 @@ export function useCourseDetails(id: string, immediate = true) {
   return useApi(`/courses/${id}`, 'get', undefined, immediate);
 }
 
+// Teacher specific hooks
+export function useTeacherCourses(immediate = true) {
+  return useApi('/teacher/courses', 'get', undefined, immediate);
+}
+
 // Admin specific hooks
 export function useAdminDashboard(immediate = true) {
   return useApi('/admin/dashboard', 'get', undefined, immediate);

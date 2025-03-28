@@ -793,9 +793,11 @@ def get_teacher_courses(current_user):
     
     try:
         # Get courses created by this teacher
-        # In a real application, you would have a teacher_id field in the Course model
         # For now, we'll use the author field which should match the teacher's username
         teacher_courses = []
         
         if current_user.role == 'admin':
             # Admin can see all courses
+            teacher_courses = Course.query.all()
+        else:
+            # Teacher
