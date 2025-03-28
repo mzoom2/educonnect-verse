@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import CourseCard from './CourseCard';
@@ -135,8 +136,10 @@ const CourseCarousel = ({ customCourses, isLoading: propsLoading = false }: Cour
     );
   }
 
-  // Choose which courses to display
-  const coursesToDisplay = displayCourses.length > 0 ? displayCourses : defaultCourses;
+  // Choose which courses to display, ensuring it's always an array
+  const coursesToDisplay = Array.isArray(displayCourses) && displayCourses.length > 0 
+    ? displayCourses 
+    : defaultCourses;
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">

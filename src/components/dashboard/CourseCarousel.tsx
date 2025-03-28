@@ -24,10 +24,13 @@ interface CourseCarouselProps {
   emptyMessage?: string;
 }
 
-const CourseCarousel = ({ courses, emptyMessage = "No courses available" }: CourseCarouselProps) => {
+const CourseCarousel = ({ courses = [], emptyMessage = "No courses available" }: CourseCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  
+  // Ensure courses is always an array
+  const displayCourses = Array.isArray(courses) ? courses : [];
   
   const updateScrollButtons = () => {
     if (!carouselRef.current) return;
@@ -66,7 +69,7 @@ const CourseCarousel = ({ courses, emptyMessage = "No courses available" }: Cour
     }
   };
 
-  if (courses.length === 0) {
+  if (displayCourses.length === 0) {
     return (
       <div className="bg-secondary/30 rounded-lg p-10 text-center">
         <p className="text-muted-foreground">{emptyMessage}</p>
@@ -104,7 +107,7 @@ const CourseCarousel = ({ courses, emptyMessage = "No courses available" }: Cour
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         <div className="flex space-x-4" style={{ minWidth: 'min-content' }}>
-          {courses.map((course) => (
+          {displayCourses.map((course) => (
             <div 
               key={course.id} 
               className="min-w-[280px] max-w-[280px] sm:min-w-[300px] sm:max-w-[300px]"
