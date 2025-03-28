@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -13,11 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { BookOpen, Users, Calendar, Edit, BarChart, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { courseService } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { useTeacherCourses } from '@/hooks/useApi';
 
 interface TeacherCourse {
   id: string;
@@ -36,17 +35,77 @@ const TeacherCoursesList = () => {
   const { toast } = useToast();
   const [sortField, setSortField] = useState<keyof TeacherCourse>('enrollmentCount');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const { data, isLoading, error, refetch: refreshCourses } = useTeacherCourses();
-  
-  // Ensure data is always treated as an array even if API returns null/undefined
-  const teacherCourses = data || [];
-  
-  // Log API connection issues for debugging
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  // Check backend status first
   useEffect(() => {
-    if (error) {
-      console.log('Teacher courses API error:', error);
+    const checkBackendStatus = async () => {
+      try {
+        // Use the health-check endpoint to check if backend is reachable
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3000) // 3 second timeout
+        });
+        setBackendStatus('online');
+      } catch (err) {
+        console.error("Backend appears to be offline:", err);
+        setBackendStatus('offline');
+        setError('Unable to connect to the backend server. Please check if the server is running.');
+        setIsLoading(false);
+      }
+    };
+    
+    checkBackendStatus();
+  }, []);
+
+  // Fetch courses with retry logic
+  useEffect(() => {
+    // Only fetch courses if backend is online
+    if (backendStatus !== 'online' && backendStatus !== 'checking') {
+      return;
     }
-  }, [error]);
+    
+    const fetchTeacherCourses = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        console.log(`Fetching teacher courses... (Attempt ${retryCount + 1})`);
+        const response = await courseService.getTeacherCourses();
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        if (!response.data || !Array.isArray(response.data)) {
+          throw new Error('Invalid response format from API. Backend might be misconfigured.');
+        }
+        
+        setTeacherCourses(response.data || []);
+        console.log('Successfully loaded teacher courses:', response.data.length);
+        
+        // Reset retry count on success
+        setRetryCount(0);
+      } catch (err: any) {
+        console.error('Failed to fetch teacher courses:', err);
+        setError(err.message || 'Failed to load courses. Backend server might be down.');
+        toast({
+          title: "Error Loading Courses",
+          description: err.message || 'Failed to load courses. Please try again.',
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTeacherCourses();
+  }, [toast, retryCount, backendStatus]);
 
   const handleSort = (field: keyof TeacherCourse) => {
     if (field === sortField) {
@@ -57,12 +116,37 @@ const TeacherCoursesList = () => {
     }
   };
 
+  const refreshCourses = async () => {
+    if (backendStatus === 'offline') {
+      // First try to check if backend is back online
+      setBackendStatus('checking');
+      try {
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/health-check`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3000)
+        });
+        setBackendStatus('online');
+        setRetryCount(prev => prev + 1);
+      } catch (err) {
+        setBackendStatus('offline');
+        toast({
+          title: "Backend Still Unavailable",
+          description: "The backend server is still unreachable. Please check if it's running.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setRetryCount(prev => prev + 1);
+    }
+  };
+  
   // Check if the error is likely due to network or server issue
   const isNetworkOrServerError = error?.includes('timeout') || 
                                 error?.includes('network') ||
                                 error?.includes('Server error') ||
                                 error?.includes('Unable to connect') ||
-                                error?.includes('not available');
+                                backendStatus === 'offline';
   
   // Check if the error is likely due to permissions
   const isPermissionError = error?.includes('permission') || 
@@ -105,7 +189,7 @@ const TeacherCoursesList = () => {
                 </code>
               </p>
               <div className="flex gap-2">
-                <Button onClick={() => refreshCourses()} variant="outline">
+                <Button onClick={refreshCourses} variant="outline">
                   Check Connection Again
                 </Button>
                 <Button onClick={() => navigate('/dashboard')} className="bg-edu-blue">
@@ -120,7 +204,7 @@ const TeacherCoursesList = () => {
                 Please check your account status in your profile page.
               </p>
               <div className="flex gap-2">
-                <Button onClick={() => refreshCourses()} variant="outline">
+                <Button onClick={refreshCourses} variant="outline">
                   Try Again
                 </Button>
                 <Button onClick={() => navigate('/profile')} className="bg-edu-blue">
@@ -134,7 +218,7 @@ const TeacherCoursesList = () => {
                 The teacher courses feature might not be fully implemented in the backend yet.
               </p>
               <div className="flex gap-2">
-                <Button onClick={() => refreshCourses()} variant="outline">
+                <Button onClick={refreshCourses} variant="outline">
                   Try Again
                 </Button>
                 <Button onClick={() => navigate('/dashboard')} className="bg-edu-blue">
@@ -144,7 +228,7 @@ const TeacherCoursesList = () => {
             </div>
           ) : (
             <div className="mt-4">
-              <Button onClick={() => refreshCourses()} variant="outline" className="mr-2">
+              <Button onClick={refreshCourses} variant="outline" className="mr-2">
                 Try Again
               </Button>
               <Button onClick={() => navigate('/dashboard')} variant="outline">
@@ -166,8 +250,8 @@ const TeacherCoursesList = () => {
     }
     
     // String comparison for other fields
-    const aValue = String(a[sortField] || '');
-    const bValue = String(b[sortField] || '');
+    const aValue = String(a[sortField]);
+    const bValue = String(b[sortField]);
     
     return sortDirection === 'asc'
       ? aValue.localeCompare(bValue)
@@ -175,12 +259,14 @@ const TeacherCoursesList = () => {
   });
 
   // Calculate statistics from real data
-  const totalEnrollments = teacherCourses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
+  const totalEnrollments = teacherCourses.reduce((sum, course) => sum + course.enrollmentCount, 0);
   const publishedCourses = teacherCourses.filter(course => course.status === 'published').length;
   const draftCourses = teacherCourses.filter(course => course.status === 'draft').length;
-  const ratedCourses = teacherCourses.filter(course => course.averageRating !== undefined);
-  const averageRating = ratedCourses.length > 0 
-    ? ratedCourses.reduce((sum, course) => sum + (course.averageRating || 0), 0) / ratedCourses.length
+  const averageRating = teacherCourses.length > 0 
+    ? teacherCourses
+        .filter(course => course.averageRating)
+        .reduce((sum, course) => sum + (course.averageRating || 0), 0) / 
+        teacherCourses.filter(course => course.averageRating).length || 0
     : 0;
 
   return (
@@ -247,7 +333,7 @@ const TeacherCoursesList = () => {
         <CardContent>
           <div className="mb-4 flex justify-between">
             <Button 
-              onClick={() => refreshCourses()} 
+              onClick={refreshCourses} 
               variant="outline" 
               disabled={isLoading}
               className="mr-2"
@@ -310,11 +396,11 @@ const TeacherCoursesList = () => {
               </TableHeader>
               <TableBody>
                 {sortedCourses.map((course) => (
-                  <TableRow key={course.id || `course-${Math.random()}`}>
-                    <TableCell className="font-medium">{course.title || 'Untitled Course'}</TableCell>
-                    <TableCell>{course.enrollmentCount || 0}</TableCell>
-                    <TableCell className="text-right">{course.price || 'Free'}</TableCell>
-                    <TableCell className="text-right">{course.lastUpdated || 'N/A'}</TableCell>
+                  <TableRow key={course.id}>
+                    <TableCell className="font-medium">{course.title}</TableCell>
+                    <TableCell>{course.enrollmentCount}</TableCell>
+                    <TableCell className="text-right">{course.price}</TableCell>
+                    <TableCell className="text-right">{course.lastUpdated}</TableCell>
                     <TableCell className="text-right">
                       <Badge 
                         className={course.status === 'published' 
