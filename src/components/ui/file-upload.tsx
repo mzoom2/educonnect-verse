@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Loader, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => Promise<void>;
@@ -21,7 +22,7 @@ interface FileUploadProps {
 export function FileUpload({
   onFileSelect,
   accept = "image/*,video/*,application/pdf",
-  maxSize = 100 * 1024 * 1024, // 100MB default
+  maxSize = 500 * 1024 * 1024, // 500MB default
   label = "Upload File",
   description = "Drag and drop your file here or click to browse",
   buttonText = "Select File",
@@ -32,6 +33,7 @@ export function FileUpload({
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { toast } = useToast();
   
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -64,12 +66,19 @@ export function FileUpload({
   
   const handleFile = (file: File) => {
     if (file.size > maxSize) {
-      alert(`File size exceeds the limit of ${Math.round(maxSize / (1024 * 1024))}MB`);
+      toast({
+        title: "File too large",
+        description: `File size exceeds the limit of ${Math.round(maxSize / (1024 * 1024))}MB`,
+        variant: "destructive"
+      });
       return;
     }
     
     setSelectedFile(file);
-    onFileSelect(file);
+    onFileSelect(file).catch(error => {
+      console.error("Error in file selection:", error);
+      // Error display is handled by the uploading state and error prop
+    });
   };
   
   const clearFile = () => {
@@ -77,6 +86,13 @@ export function FileUpload({
     if (onClear) {
       onClear();
     }
+  };
+  
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    else if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    else return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
   };
   
   return (
@@ -131,7 +147,7 @@ export function FileUpload({
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{selectedFile.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {Math.round(selectedFile.size / 1024)} KB
+                        {formatFileSize(selectedFile.size)}
                       </p>
                     </div>
                   </div>
@@ -151,7 +167,10 @@ export function FileUpload({
               {uploading && (
                 <div className="space-y-2 mt-4">
                   <div className="flex justify-between text-sm">
-                    <span>Uploading...</span>
+                    <span className="flex items-center">
+                      <Loader className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </span>
                     <span>{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />

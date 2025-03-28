@@ -19,9 +19,21 @@ export function useFileUpload() {
     file: File, 
     courseId?: string, 
     type: string = 'document',
-    folder: string = 'course-resources'
+    folder: string = 'course-resources',
+    maxSize: number = 500 * 1024 * 1024 // 500MB default max size
   ) => {
     try {
+      // Check file size against the provided max size
+      if (file.size > maxSize) {
+        const errorMessage = `File size exceeds the limit of ${Math.round(maxSize / (1024 * 1024))}MB`;
+        setUploadState({
+          progress: 0,
+          isUploading: false,
+          error: errorMessage
+        });
+        throw new Error(errorMessage);
+      }
+
       setUploadState({
         progress: 0,
         isUploading: true,
@@ -62,9 +74,10 @@ export function useFileUpload() {
       
       return {
         id: Date.now().toString(),
-        name: response.data.originalName,
-        type: response.data.type,
+        name: response.data.originalName || file.name,
+        type: response.data.type || file.type,
         url: response.data.fileUrl,
+        size: file.size,
         uploadedAt: new Date().toISOString(),
       };
     } catch (error: any) {
