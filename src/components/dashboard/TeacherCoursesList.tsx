@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Table, 
@@ -11,12 +11,13 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, Calendar, Edit, BarChart, Loader2 } from 'lucide-react';
+import { BookOpen, Users, Calendar, Edit, BarChart, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useApi } from '@/hooks/useApi';
+import { courseService } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface TeacherCourse {
   id: string;
@@ -35,14 +36,39 @@ const TeacherCoursesList = () => {
   const { toast } = useToast();
   const [sortField, setSortField] = useState<keyof TeacherCourse>('enrollmentCount');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]);
 
-  // Use the real API hook to fetch teacher's courses
-  const { 
-    data: teacherCourses, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useApi<TeacherCourse[]>('/teacher/courses', 'get');
+  // Fetch courses directly using the courseService
+  useEffect(() => {
+    const fetchTeacherCourses = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await courseService.getTeacherCourses();
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        setTeacherCourses(response.data || []);
+      } catch (err: any) {
+        console.error('Failed to fetch teacher courses:', err);
+        setError(err.message || 'Failed to load courses. Please try again.');
+        toast({
+          title: "Error Loading Courses",
+          description: err.message || 'Failed to load courses. Please try again.',
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTeacherCourses();
+  }, [toast]);
 
   const handleSort = (field: keyof TeacherCourse) => {
     if (field === sortField) {
@@ -53,7 +79,36 @@ const TeacherCoursesList = () => {
     }
   };
 
-  // Show error message if API call fails
+  const refreshCourses = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await courseService.getTeacherCourses();
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      setTeacherCourses(response.data || []);
+      toast({
+        title: "Courses Refreshed",
+        description: "Your course list has been updated.",
+      });
+    } catch (err: any) {
+      console.error('Failed to refresh teacher courses:', err);
+      setError(err.message || 'Failed to refresh courses. Please try again.');
+      toast({
+        title: "Error Refreshing Courses",
+        description: err.message || 'Failed to refresh courses. Please try again.',
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // If there's an error, show error message
   if (error && !isLoading) {
     return (
       <Card className="border-red-200">
@@ -64,7 +119,12 @@ const TeacherCoursesList = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => refetch()} variant="outline" className="mt-2">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <Button onClick={refreshCourses} variant="outline" className="mt-2">
             Try Again
           </Button>
         </CardContent>
@@ -72,11 +132,8 @@ const TeacherCoursesList = () => {
     );
   }
   
-  // If there's no data yet, use an empty array for calculations
-  const coursesData = teacherCourses || [];
-  
   // Sort the courses based on current sort settings
-  const sortedCourses = [...coursesData].sort((a, b) => {
+  const sortedCourses = [...teacherCourses].sort((a, b) => {
     if (sortField === 'enrollmentCount' || sortField === 'averageRating') {
       return sortDirection === 'asc' 
         ? (a[sortField] || 0) - (b[sortField] || 0)
@@ -93,14 +150,14 @@ const TeacherCoursesList = () => {
   });
 
   // Calculate statistics from real data
-  const totalEnrollments = coursesData.reduce((sum, course) => sum + course.enrollmentCount, 0);
-  const publishedCourses = coursesData.filter(course => course.status === 'published').length;
-  const draftCourses = coursesData.filter(course => course.status === 'draft').length;
-  const averageRating = coursesData.length > 0 
-    ? coursesData
+  const totalEnrollments = teacherCourses.reduce((sum, course) => sum + course.enrollmentCount, 0);
+  const publishedCourses = teacherCourses.filter(course => course.status === 'published').length;
+  const draftCourses = teacherCourses.filter(course => course.status === 'draft').length;
+  const averageRating = teacherCourses.length > 0 
+    ? teacherCourses
         .filter(course => course.averageRating)
         .reduce((sum, course) => sum + (course.averageRating || 0), 0) / 
-        coursesData.filter(course => course.averageRating).length || 0
+        teacherCourses.filter(course => course.averageRating).length || 0
     : 0;
 
   return (
@@ -164,7 +221,22 @@ const TeacherCoursesList = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex justify-between">
+            <Button 
+              onClick={refreshCourses} 
+              variant="outline" 
+              disabled={isLoading}
+              className="mr-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>Refresh</>
+              )}
+            </Button>
             <Button onClick={() => navigate('/create-course')} className="bg-edu-blue">
               Create New Course
             </Button>
@@ -178,7 +250,7 @@ const TeacherCoursesList = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             </div>
-          ) : coursesData.length === 0 ? (
+          ) : teacherCourses.length === 0 ? (
             <div className="text-center py-12 border rounded-md bg-muted/20">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
               <h3 className="text-lg font-medium mb-2">No courses yet</h3>
