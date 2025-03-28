@@ -135,7 +135,13 @@ export function useCourseDetails(id: string, immediate = true) {
 
 // Add a specialized hook for teacher courses
 export function useTeacherCourses(immediate = true) {
-  return useApi<any[]>('/api/teacher/courses', 'get', undefined, immediate);
+  const response = useApi<any[]>('/api/teacher/courses', 'get', undefined, immediate);
+  
+  // Ensure data is always an array even if the API returns something else
+  return {
+    ...response,
+    data: Array.isArray(response.data) ? response.data : []
+  };
 }
 
 // Admin specific hooks

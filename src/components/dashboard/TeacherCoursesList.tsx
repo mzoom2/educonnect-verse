@@ -36,7 +36,10 @@ const TeacherCoursesList = () => {
   const { toast } = useToast();
   const [sortField, setSortField] = useState<keyof TeacherCourse>('enrollmentCount');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const { data: teacherCourses = [], isLoading, error, refetch: refreshCourses } = useTeacherCourses();
+  const { data, isLoading, error, refetch: refreshCourses } = useTeacherCourses();
+  
+  // Ensure data is always treated as an array (useTeacherCourses now guarantees this)
+  const teacherCourses = data || [];
   
   const handleSort = (field: keyof TeacherCourse) => {
     if (field === sortField) {
@@ -146,11 +149,8 @@ const TeacherCoursesList = () => {
     );
   }
   
-  // Ensure teacherCourses is an array before sorting
-  const coursesArray = Array.isArray(teacherCourses) ? teacherCourses : [];
-
   // Sort the courses based on current sort settings
-  const sortedCourses = [...coursesArray].sort((a, b) => {
+  const sortedCourses = [...teacherCourses].sort((a, b) => {
     if (sortField === 'enrollmentCount' || sortField === 'averageRating') {
       return sortDirection === 'asc' 
         ? (a[sortField] || 0) - (b[sortField] || 0)
@@ -158,8 +158,8 @@ const TeacherCoursesList = () => {
     }
     
     // String comparison for other fields
-    const aValue = String(a[sortField]);
-    const bValue = String(b[sortField]);
+    const aValue = String(a[sortField] || '');
+    const bValue = String(b[sortField] || '');
     
     return sortDirection === 'asc'
       ? aValue.localeCompare(bValue)
@@ -167,10 +167,10 @@ const TeacherCoursesList = () => {
   });
 
   // Calculate statistics from real data
-  const totalEnrollments = coursesArray.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
-  const publishedCourses = coursesArray.filter(course => course.status === 'published').length;
-  const draftCourses = coursesArray.filter(course => course.status === 'draft').length;
-  const ratedCourses = coursesArray.filter(course => course.averageRating !== undefined);
+  const totalEnrollments = teacherCourses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
+  const publishedCourses = teacherCourses.filter(course => course.status === 'published').length;
+  const draftCourses = teacherCourses.filter(course => course.status === 'draft').length;
+  const ratedCourses = teacherCourses.filter(course => course.averageRating !== undefined);
   const averageRating = ratedCourses.length > 0 
     ? ratedCourses.reduce((sum, course) => sum + (course.averageRating || 0), 0) / ratedCourses.length
     : 0;
@@ -266,7 +266,7 @@ const TeacherCoursesList = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             </div>
-          ) : coursesArray.length === 0 ? (
+          ) : teacherCourses.length === 0 ? (
             <div className="text-center py-12 border rounded-md bg-muted/20">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
               <h3 className="text-lg font-medium mb-2">No courses yet</h3>
@@ -302,11 +302,11 @@ const TeacherCoursesList = () => {
               </TableHeader>
               <TableBody>
                 {sortedCourses.map((course) => (
-                  <TableRow key={course.id}>
-                    <TableCell className="font-medium">{course.title}</TableCell>
-                    <TableCell>{course.enrollmentCount}</TableCell>
-                    <TableCell className="text-right">{course.price}</TableCell>
-                    <TableCell className="text-right">{course.lastUpdated}</TableCell>
+                  <TableRow key={course.id || `course-${Math.random()}`}>
+                    <TableCell className="font-medium">{course.title || 'Untitled Course'}</TableCell>
+                    <TableCell>{course.enrollmentCount || 0}</TableCell>
+                    <TableCell className="text-right">{course.price || 'Free'}</TableCell>
+                    <TableCell className="text-right">{course.lastUpdated || 'N/A'}</TableCell>
                     <TableCell className="text-right">
                       <Badge 
                         className={course.status === 'published' 
