@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Clock, User, Star, BookOpen, FileText, Award, BarChart3, ImageIcon, AlertCircle } from 'lucide-react';
+import { Clock, User, Star, BookOpen, FileText, Award, CheckCircle, Play, ImageIcon, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CourseResource } from '@/services/courseService';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface CourseCardProps {
   id?: string;
@@ -23,6 +23,7 @@ interface CourseCardProps {
   progress?: number;
   lessonCount?: number;
   enrollmentStatus?: 'not-enrolled' | 'enrolled' | 'completed';
+  lastAccessed?: string;
 }
 
 const CourseCard = ({ 
@@ -38,9 +39,12 @@ const CourseCard = ({
   difficulty = 'Beginner',
   progress = 0,
   lessonCount = 0,
-  enrollmentStatus = 'not-enrolled'
+  enrollmentStatus = 'not-enrolled',
+  lastAccessed
 }: CourseCardProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [enrolling, setEnrolling] = useState(false);
   // Track if image failed to load
   const [imageError, setImageError] = useState(false);
   // Default image if image path is missing or invalid
@@ -78,12 +82,61 @@ const CourseCard = ({
     }
   };
 
+  // Handle enrollment action based on current status
+  const handleEnrollmentAction = () => {
+    if (enrollmentStatus === 'not-enrolled') {
+      // For demo purposes, we'll simulate enrollment
+      setEnrolling(true);
+      
+      // Simulate backend call for enrollment
+      setTimeout(() => {
+        setEnrolling(false);
+        
+        if (price === "Free" || price === "₦0") {
+          // Free course enrollment
+          toast({
+            title: "Enrollment Successful",
+            description: `You've been enrolled in "${title}". Start learning now!`,
+            variant: "default",
+          });
+          navigate(`/courses/${id}/learn`);
+        } else {
+          // Paid course - redirect to payment
+          navigate(`/courses/${id}/payment`);
+        }
+      }, 1000);
+    } else if (enrollmentStatus === 'enrolled') {
+      // Continue learning - navigate to course learning page
+      navigate(`/courses/${id}/learn`);
+    } else if (enrollmentStatus === 'completed') {
+      // View certificate
+      navigate(`/courses/${id}/certificate`);
+    }
+  };
+
+  // Card click handler - navigate to details or learning page
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Don't trigger if clicking on the CTA button or tooltips
+    if ((e.target as HTMLElement).closest('button') || 
+        (e.target as HTMLElement).closest('[role="tooltip"]')) {
+      return;
+    }
+    
+    if (enrollmentStatus === 'not-enrolled') {
+      navigate(`/courses/${id}`);
+    } else {
+      navigate(`/courses/${id}/learn`);
+    }
+  };
+
   // Get action button text based on enrollment status
   const getActionButtonText = () => {
+    if (enrolling) return "Processing...";
+    
     switch(enrollmentStatus) {
       case 'enrolled': return 'Continue Learning';
       case 'completed': return 'View Certificate';
-      default: return 'Enroll Now';
+      default: return price === "Free" || price === "₦0" ? "Enroll Now - FREE" : `Enroll Now - ${price}`;
     }
   };
 
@@ -96,13 +149,25 @@ const CourseCard = ({
     }
   };
 
+  // Get the appropriate icon for the action button
+  const getActionButtonIcon = () => {
+    if (enrolling) return null;
+    
+    switch(enrollmentStatus) {
+      case 'enrolled': return <Play size={16} />;
+      case 'completed': return <Award size={16} />;
+      default: return null;
+    }
+  };
+
   return (
     <Card 
-      className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group h-full relative"
+      className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group h-full relative cursor-pointer"
       data-course-id={id}
       data-enrollment-status={enrollmentStatus}
       data-difficulty-level={difficulty}
       data-category-id={category}
+      onClick={handleCardClick}
     >
       <div className="relative aspect-video overflow-hidden">
         {image && !imageError ? (
@@ -139,7 +204,7 @@ const CourseCard = ({
         {enrollmentStatus === 'completed' && (
           <div className="absolute top-3 right-3 z-10">
             <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 shadow-sm flex items-center">
-              <Award className="h-3 w-3 mr-1" />
+              <CheckCircle className="h-3 w-3 mr-1" />
               Completed
             </Badge>
           </div>
@@ -153,15 +218,16 @@ const CourseCard = ({
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <span>{Math.round(progress)}% complete</span>
             {progress === 100 && <Award size={12} className="text-green-500" />}
+            
+            {lastAccessed && enrollmentStatus === 'enrolled' && (
+              <span className="text-xs text-muted-foreground">
+                Last accessed: {lastAccessed}
+              </span>
+            )}
           </div>
           <Progress 
-            value={progress} 
+            value={progress}
             className="h-1.5" 
-            // Dynamic color based on progress
-            style={{ 
-              background: '#f1f1f1',
-              '--tw-progress-fill': progress < 30 ? '#f87171' : progress < 70 ? '#facc15' : '#4ade80'
-            } as React.CSSProperties}
           />
         </div>
       )}
@@ -246,7 +312,14 @@ const CourseCard = ({
           <Button 
             variant={getActionButtonVariant() as any} 
             size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEnrollmentAction();
+            }}
+            disabled={enrolling}
+            className="flex items-center gap-1"
           >
+            {getActionButtonIcon()}
             {getActionButtonText()}
           </Button>
         </div>
