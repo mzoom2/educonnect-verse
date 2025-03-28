@@ -15,7 +15,8 @@ type ApiMethod = 'get' | 'post' | 'put' | 'delete';
 // Check if backend is available
 export const checkBackendHealth = async (): Promise<boolean> => {
   try {
-    await api.get('/health-check', { timeout: 3000 });
+    console.log('Checking backend health...');
+    await api.get('/health-check', { timeout: 5000 });
     console.log('Backend health check passed');
     return true;
   } catch (error) {
