@@ -38,8 +38,8 @@ const CourseOverview = () => {
     { name: 'Business', count: 14 },
   ];
 
-  // Default courses for development
-  const defaultCourses = [
+  // Default enrolled courses for development
+  const enrolledCourses = [
     {
       id: '1',
       image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
@@ -72,15 +72,15 @@ const CourseOverview = () => {
     }
   ];
   
-  const recentCourses = defaultCourses.slice(0, 3);
-  const popularCourses = [...defaultCourses].sort(() => Math.random() - 0.5).slice(0, 3);
+  const recentCourses = enrolledCourses.slice(0, 3);
+  const popularCourses = [...enrolledCourses].sort(() => Math.random() - 0.5).slice(0, 3);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background p-3 border border-border shadow-sm rounded-md">
           <p className="text-sm font-medium">{`${label}`}</p>
-          <p className="text-sm text-edu-blue">{`${payload[0].value} Courses`}</p>
+          <p className="text-sm text-edu-blue">{`${payload[0].value} Hours`}</p>
         </div>
       );
     }
@@ -90,17 +90,17 @@ const CourseOverview = () => {
   return (
     <DashboardLayout>
       <div className="container mx-auto p-4 md:p-6">
-        {/* Welcome Header Section */}
+        {/* Header Section */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">
-            Your Course Overview
+            Your Enrolled Courses
           </h1>
           <p className="text-muted-foreground">
-            Track your learning progress and explore your course statistics.
+            Track your learning progress and explore your enrolled courses.
           </p>
         </div>
         
-        {/* Main Dashboard Tabs */}
+        {/* Main Tabs */}
         <Tabs 
           defaultValue="overview" 
           value={activeTab}
@@ -180,7 +180,7 @@ const CourseOverview = () => {
               </Card>
             </div>
             
-            {/* Recent Activity & Popular Courses */}
+            {/* Course Activity & Categories */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <div className="lg:col-span-3">
                 <Card className="h-full">
@@ -247,14 +247,14 @@ const CourseOverview = () => {
               </div>
             </div>
             
-            {/* Recent Courses */}
+            {/* Continue Learning Section */}
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold flex items-center">
                   <Clock size={20} className="mr-2 text-edu-blue" />
                   Continue Learning
                 </h2>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => setActiveTab("mycourses")}>
                   View All
                 </Button>
               </div>
@@ -265,34 +265,19 @@ const CourseOverview = () => {
                 ))}
               </div>
             </div>
-            
-            {/* Popular Courses */}
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold flex items-center">
-                  <TrendingUp size={20} className="mr-2 text-edu-purple" />
-                  Popular Courses
-                </h2>
-                <Button variant="outline" size="sm">
-                  View All
-                </Button>
-              </div>
-              
-              <CourseCarousel courses={popularCourses} />
-            </div>
           </TabsContent>
           
           {/* My Courses Tab Content */}
           <TabsContent value="mycourses" className="space-y-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">My Enrolled Courses</h2>
+              <h2 className="text-xl font-bold">All Enrolled Courses</h2>
               <Button variant="outline">
-                Browse Courses
+                Browse New Courses
               </Button>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {defaultCourses.map((course) => (
+              {enrolledCourses.map((course) => (
                 <DashboardCourseCard key={course.id} {...course} />
               ))}
             </div>
@@ -310,7 +295,7 @@ const CourseOverview = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {defaultCourses.map((course) => (
+                    {enrolledCourses.map((course) => (
                       <div key={course.id} className="border-b pb-4 last:border-0">
                         <h3 className="font-medium mb-2">{course.title}</h3>
                         <div className="flex justify-between items-center mb-2">

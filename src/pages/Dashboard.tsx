@@ -6,19 +6,18 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { 
-  BookOpen, Layers, Users, TrendingUp, FileText, 
+  BookOpen, Layers, Users, TrendingUp, 
   Clock, Activity, Plus, Award, Star 
 } from 'lucide-react';
 import DashboardCourseCard from '@/components/dashboard/DashboardCourseCard';
 import CourseCarousel from '@/components/dashboard/CourseCarousel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
-import { useAllCourses, getRecentlyViewedCourses, getPopularCourses } from '@/services/courseService';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
-  const { courses, loading, error } = useAllCourses();
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
   const { user, isTeacher } = useAuth();
@@ -42,7 +41,7 @@ const Dashboard = () => {
     { name: 'Business', count: 14 },
   ];
 
-  // Default courses for development (used when API is unavailable)
+  // Default courses for development
   const defaultCourses = [
     {
       id: '1',
@@ -86,21 +85,8 @@ const Dashboard = () => {
     }
   ];
   
-  // Use default courses instead of API data
-  const displayCourses = defaultCourses;
+  // Use default courses
   const recentCourses = defaultCourses.slice(0, 3);
-  const popularCourses = [...defaultCourses].sort(() => Math.random() - 0.5).slice(0, 3);
-
-  useEffect(() => {
-    if (error) {
-      console.error('Error loading courses:', error);
-      toast({
-        title: "Failed to load course data",
-        description: "Using sample data instead. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -135,9 +121,8 @@ const Dashboard = () => {
           className="mb-8"
         >
           <div className="flex justify-between items-center mb-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-md">
+            <TabsList className="grid grid-cols-2 md:grid-cols-3 w-full max-w-md">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="mycourses">My Courses</TabsTrigger>
               <TabsTrigger value="progress">Progress</TabsTrigger>
               {isTeacher && (
                 <TabsTrigger value="teaching">Teaching</TabsTrigger>
@@ -210,14 +195,14 @@ const Dashboard = () => {
               </Card>
             </div>
             
-            {/* Recent Activity & Popular Courses */}
+            {/* Recent Activity & Categories */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <div className="lg:col-span-3">
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Activity size={18} className="mr-2 text-edu-blue" />
-                      Course Activity
+                      Learning Activity
                     </CardTitle>
                     <CardDescription>
                       Your weekly learning activity
@@ -277,16 +262,18 @@ const Dashboard = () => {
               </div>
             </div>
             
-            {/* Recent Courses */}
+            {/* Recent Courses with Link to Courses Page */}
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold flex items-center">
                   <Clock size={20} className="mr-2 text-edu-blue" />
                   Continue Learning
                 </h2>
-                <Button variant="outline" size="sm">
-                  View All
-                </Button>
+                <Link to="/courses">
+                  <Button variant="outline" size="sm">
+                    View All Courses
+                  </Button>
+                </Link>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -294,37 +281,6 @@ const Dashboard = () => {
                   <DashboardCourseCard key={course.id} {...course} />
                 ))}
               </div>
-            </div>
-            
-            {/* Popular Courses */}
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold flex items-center">
-                  <TrendingUp size={20} className="mr-2 text-edu-purple" />
-                  Popular Courses
-                </h2>
-                <Button variant="outline" size="sm">
-                  View All
-                </Button>
-              </div>
-              
-              <CourseCarousel courses={popularCourses} />
-            </div>
-          </TabsContent>
-          
-          {/* My Courses Tab Content */}
-          <TabsContent value="mycourses" className="space-y-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">My Enrolled Courses</h2>
-              <Button variant="outline">
-                Browse Courses
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayCourses.map((course) => (
-                <DashboardCourseCard key={course.id} {...course} />
-              ))}
             </div>
           </TabsContent>
           
@@ -339,7 +295,12 @@ const Dashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">Progress tracking content will go here</p>
+                  <p className="text-muted-foreground mb-4">Progress tracking content will go here</p>
+                  <Link to="/courses">
+                    <Button>
+                      View All Your Courses
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>
