@@ -184,9 +184,9 @@ export const authService = {
         
       if (fetchError) throw fetchError;
       
-      // Merge existing metadata with new metadata - fix TypeScript error
-      const existingMetadata = existingData?.metadata as Record<string, unknown> || {};
-      const newMetadata = data.metadata as Record<string, unknown>;
+      // Merge existing metadata with new metadata
+      const existingMetadata = existingData?.metadata || {};
+      const newMetadata = data.metadata || {};
       
       const mergedMetadata = {
         ...existingMetadata,
@@ -229,8 +229,8 @@ export const authService = {
         submittedAt: new Date().toISOString()
       };
       
-      // Merge with existing metadata - fix TypeScript error
-      const existingMetadata = existingData?.metadata as Record<string, unknown> || {};
+      // Merge with existing metadata
+      const existingMetadata = existingData?.metadata || {};
       
       const mergedMetadata = {
         ...existingMetadata,
