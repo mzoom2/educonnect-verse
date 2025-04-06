@@ -1,10 +1,13 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { createStorageBucket } from '@/services/supabaseService';
 
-// Create the increment_view_count function in Supabase
+// Set up custom RPC functions
 export const setupSupabaseRPC = async () => {
-  const rpcQuery = `
-    -- Function to increment the view count of a course
+  try {
+    // Create the increment_view_count function if it doesn't exist
+    // Note: This should be done using migrations, but for demo purposes we'll create it here
+    const viewCountSQL = `
     CREATE OR REPLACE FUNCTION increment_view_count(course_id UUID)
     RETURNS void AS $$
     BEGIN
@@ -13,45 +16,40 @@ export const setupSupabaseRPC = async () => {
       WHERE id = course_id;
     END;
     $$ LANGUAGE plpgsql;
-  `;
-  
-  try {
-    const { error } = await supabase.rpc('exec_sql', { sql: rpcQuery });
-    if (error) {
-      console.error('Failed to create increment_view_count function:', error);
-    } else {
-      console.log('Successfully created increment_view_count function');
-    }
-  } catch (err) {
-    console.error('Error setting up Supabase RPC:', err);
+    `;
+    
+    // Since we can't directly execute SQL from client SDK, we'll skip this for now
+    // In a real app, this would be done through migrations or admin functions
+    console.log('Skipping increment_view_count function creation - should be handled by migrations');
+    
+  } catch (error) {
+    console.error('Failed to create increment_view_count function:', error);
   }
 };
 
-// Create the storage bucket for course content
+// Set up storage bucket
 export const setupStorageBucket = async () => {
   try {
-    // Create the bucket using direct API call
-    const { error: bucketError } = await supabase.storage.createBucket('course-content', {
-      public: true,
-      fileSizeLimit: 52428800 // 50MB
-    });
-    
-    if (bucketError) {
-      // If the bucket already exists, this is fine
-      if (!bucketError.message.includes('already exists')) {
-        console.error('Error creating storage bucket:', bucketError);
-      }
-    } else {
-      console.log('Successfully created course-content bucket');
-    }
-  } catch (err) {
-    console.error('Error setting up storage bucket:', err);
+    await createStorageBucket();
+  } catch (error) {
+    console.error('Error creating storage bucket:', error);
   }
 };
 
-// Run all setup functions
+// Initialize Supabase setup
 export const initializeSupabase = async () => {
-  await setupSupabaseRPC();
-  await setupStorageBucket();
-  console.log('Supabase initialization complete');
+  try {
+    // Set up RPC functions
+    await setupSupabaseRPC();
+    
+    // Set up storage bucket
+    await setupStorageBucket();
+    
+    console.log('Supabase initialization complete');
+    
+    return true;
+  } catch (error) {
+    console.error('Error initializing Supabase:', error);
+    return false;
+  }
 };

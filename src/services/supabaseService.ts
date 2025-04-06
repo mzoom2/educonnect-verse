@@ -176,7 +176,7 @@ export const authService = {
       
       // Merge existing metadata with new metadata
       const mergedMetadata = {
-        ...(existingData?.metadata || {}),
+        ...(existingData?.metadata as any || {}),
         ...data.metadata
       };
       
@@ -218,7 +218,7 @@ export const authService = {
       
       // Merge with existing metadata
       const mergedMetadata = {
-        ...(existingData?.metadata || {}),
+        ...(existingData?.metadata as any || {}),
         teacherApplication
       };
       
@@ -416,7 +416,7 @@ export const courseService = {
       if (error) throw error;
       
       // Format data for teacher dashboard
-      const formattedCourses = data.map(course => ({
+      const formattedCourses = data ? data.map(course => ({
         id: course.id,
         title: course.title,
         enrollmentCount: course.enrollment_count || 0,
@@ -426,7 +426,7 @@ export const courseService = {
         category: course.category || 'Uncategorized',
         status: 'published', // Default status since we don't have draft functionality yet
         averageRating: course.rating || 0
-      }));
+      })) : [];
       
       return { data: formattedCourses, error: null };
     } catch (error: any) {
@@ -468,13 +468,21 @@ export const courseService = {
   }
 };
 
-// Add RPC for incrementing view count
-// This will need to be created in Supabase SQL Editor
-export const createIncrementViewCountFunction = async () => {
+// Function to create a storage bucket if it doesn't exist
+export const createStorageBucket = async () => {
   try {
-    const { error } = await supabase.rpc('create_increment_view_count_function', {});
-    if (error) console.error('Error creating increment_view_count function:', error);
+    const { data, error } = await supabase.storage.createBucket('course-content', {
+      public: true,
+      fileSizeLimit: 52428800, // 50MB
+      allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
+    });
+    
+    if (error && !error.message.includes('already exists')) {
+      console.error('Error creating storage bucket:', error);
+    } else {
+      console.log('Storage bucket created or already exists');
+    }
   } catch (error) {
-    console.error('Error setting up increment_view_count function:', error);
+    console.error('Error setting up storage bucket:', error);
   }
 };

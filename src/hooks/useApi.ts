@@ -15,7 +15,10 @@ type ApiRequestState<T> = {
 export const checkBackendHealth = async (): Promise<boolean> => {
   try {
     // For Supabase, we can check if we can connect by making a simple query
-    const { error } = await supabase.from('courses').select('id').limit(1);
+    const { error } = await supabase
+      .from('courses')
+      .select('id')
+      .limit(1);
     return !error;
   } catch (error) {
     console.error('Backend health check failed:', error);
