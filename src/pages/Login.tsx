@@ -24,13 +24,15 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting to sign in with:", email);
       const { error } = await signIn(email, password);
+      
       if (error) {
         // Display more user-friendly message for email confirmation error
         if (error.message.includes('Email not confirmed')) {
           toast({
             title: "Email not confirmed",
-            description: "Please check your inbox and click the confirmation link to verify your email address.",
+            description: "Please check your inbox and click the confirmation link to verify your email address. If you didn't receive the email, try registering again.",
             variant: "destructive"
           });
         } else {

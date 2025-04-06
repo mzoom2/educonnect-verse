@@ -105,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        console.log("Auth state change detected:", _event, session ? "Session exists" : "No session");
         // Only synchronous state updates here
         if (session) {
           // We have a session, but defer the user profile fetch
@@ -134,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log("AuthContext: Signing in with", email);
       const { error, data } = await authService.login(email, password);
       
       if (!error && data) {
@@ -146,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: "Welcome back!",
         });
       } else {
+        console.error("Login failed with error:", error);
         toast({
           title: "Login failed",
           description: error || "Unknown error occurred",
@@ -156,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error ? new Error(error) : null };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error occurred');
+      console.error("Exception during login:", error);
       toast({
         title: "Login failed",
         description: error.message,

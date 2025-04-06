@@ -48,12 +48,16 @@ export const authService = {
   // Sign in with email and password
   login: async (email: string, password: string) => {
     try {
+      // Try to sign in even if email might not be confirmed
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
+        // Log the error for debugging
+        console.error('Login error details:', error);
+        
         // Handle email not confirmed error specifically
         if (error.message.includes('Email not confirmed')) {
           console.log('Email not confirmed. Please check your email for verification link.');
@@ -180,10 +184,13 @@ export const authService = {
         
       if (fetchError) throw fetchError;
       
-      // Merge existing metadata with new metadata
+      // Merge existing metadata with new metadata - fix TypeScript error
+      const existingMetadata = existingData?.metadata as Record<string, unknown> || {};
+      const newMetadata = data.metadata as Record<string, unknown>;
+      
       const mergedMetadata = {
-        ...(existingData?.metadata || {}),
-        ...data.metadata
+        ...existingMetadata,
+        ...newMetadata
       };
       
       // Update profile with new metadata
@@ -222,9 +229,11 @@ export const authService = {
         submittedAt: new Date().toISOString()
       };
       
-      // Merge with existing metadata
+      // Merge with existing metadata - fix TypeScript error
+      const existingMetadata = existingData?.metadata as Record<string, unknown> || {};
+      
       const mergedMetadata = {
-        ...(existingData?.metadata as Record<string, any> || {}),
+        ...existingMetadata,
         teacherApplication
       };
       
