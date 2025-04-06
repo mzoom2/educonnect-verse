@@ -9,7 +9,116 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      course_resources: {
+        Row: {
+          course_id: string | null
+          created_at: string | null
+          id: string
+          name: string
+          size: number | null
+          type: string
+          url: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          size?: number | null
+          type: string
+          url: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          size?: number | null
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_resources_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          author: string
+          category: string | null
+          created_at: string | null
+          description: string | null
+          duration: string | null
+          enrollment_count: number | null
+          id: string
+          image: string | null
+          popularity_score: number | null
+          price: string | null
+          rating: number | null
+          title: string
+          view_count: number | null
+        }
+        Insert: {
+          author: string
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: string | null
+          enrollment_count?: number | null
+          id?: string
+          image?: string | null
+          popularity_score?: number | null
+          price?: string | null
+          rating?: number | null
+          title: string
+          view_count?: number | null
+        }
+        Update: {
+          author?: string
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: string | null
+          enrollment_count?: number | null
+          id?: string
+          image?: string | null
+          popularity_score?: number | null
+          price?: string | null
+          rating?: number | null
+          title?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          id: string
+          last_login: string | null
+          metadata: Json | null
+          role: string | null
+          username: string | null
+        }
+        Insert: {
+          id: string
+          last_login?: string | null
+          metadata?: Json | null
+          role?: string | null
+          username?: string | null
+        }
+        Update: {
+          id?: string
+          last_login?: string | null
+          metadata?: Json | null
+          role?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

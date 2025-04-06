@@ -1,33 +1,15 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { authService } from '@/services/api';
-
-// Define types for user data
-type UserData = {
-  id: number;
-  email: string;
-  username: string;
-  role: string;
-  created_at: string;
-  last_login: string | null;
-  metadata?: {
-    balance?: number;
-    teacherApplication?: {
-      qualification: string;
-      experience: string;
-      specialization: string;
-      status: string;
-      submittedAt: string;
-    };
-  };
-};
+import { authService, UserProfile } from '@/services/supabaseService';
+import { supabase } from '@/integrations/supabase/client';
 
 type AuthContextType = {
-  user: UserData | null;
+  user: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
-  isTeacher: boolean; // Add this property
+  isTeacher: boolean;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
   }>;
@@ -37,24 +19,25 @@ type AuthContextType = {
   }>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
-  updateUserMetadata: (userId: number, data: any) => Promise<void>;
+  updateUserMetadata: (userId: string, data: any) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isTeacher, setIsTeacher] = useState(false); // Add this state
+  const [isTeacher, setIsTeacher] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Function to refresh user data from the backend
   const refreshUserData = async () => {
-    if (!authService.isAuthenticated()) {
+    if (!(await authService.isAuthenticated())) {
       setUser(null);
       setIsAdmin(false);
+      setIsTeacher(false);
       setLoading(false);
       return;
     }
@@ -72,22 +55,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         setUser(null);
         setIsAdmin(false);
+        setIsTeacher(false);
         return;
       }
       
       setUser(data.user);
       setIsAdmin(data.user.role === 'admin');
+      setIsTeacher(data.user.role === 'teacher');
     } catch (err) {
       console.error("Error refreshing user data:", err);
       setUser(null);
       setIsAdmin(false);
+      setIsTeacher(false);
     } finally {
       setLoading(false);
     }
   };
 
   // Function to update user metadata
-  const updateUserMetadata = async (userId: number, data: any) => {
+  const updateUserMetadata = async (userId: string, data: any) => {
     try {
       setLoading(true);
       console.log("Updating user metadata with:", data);
@@ -115,61 +101,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Function to check if the user is authenticated with the backend
-  const verifyAuthentication = async () => {
-    try {
-      setLoading(true);
-      
-      if (!authService.isAuthenticated()) {
-        setUser(null);
-        setIsAdmin(false);
-        setIsTeacher(false); // Reset teacher status
-        setLoading(false);
-        return;
-      }
-      
-      // Verify token with backend
-      const { valid, data } = await authService.verifyToken();
-      
-      if (!valid) {
-        console.log("Token invalid, logging out");
-        await signOut();
-        return;
-      }
-      
-      // Set user data from the verification response
-      if (data && data.user) {
-        setUser(data.user);
-        setIsAdmin(data.user.role === 'admin');
-        setIsTeacher(data.user.role === 'teacher'); // Set teacher status
-      }
-    } catch (error) {
-      console.error("Authentication verification error:", error);
-      toast({
-        title: "Authentication error",
-        description: "Could not verify your authentication status",
-        variant: "destructive"
-      });
-      setUser(null);
-      setIsAdmin(false);
-      setIsTeacher(false); // Reset teacher status
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    // Initial authentication check
-    verifyAuthentication();
-    
-    // Set up an interval to periodically check authentication
-    const interval = setInterval(() => {
-      if (authService.isAuthenticated()) {
-        verifyAuthentication();
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        // Only synchronous state updates here
+        if (session) {
+          // We have a session, but defer the user profile fetch
+          setTimeout(() => {
+            refreshUserData();
+          }, 0);
+        } else {
+          // No session, clear user data
+          setUser(null);
+          setIsAdmin(false);
+          setIsTeacher(false);
+          setLoading(false);
+        }
       }
-    }, 30 * 60 * 1000); // Check every 30 minutes
+    );
     
-    return () => clearInterval(interval);
+    // Check for existing session
+    refreshUserData();
+    
+    // Cleanup
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sign in with email and password
@@ -234,22 +192,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data) {
-        // Auto login after successful registration
-        const loginResult = await signIn(email, password);
-        
-        if (!loginResult.error) {
-          toast({
-            title: "Registration successful",
-            description: "Your account has been created",
-          });
-        } else {
-          // If auto-login fails, show a message but don't treat signup as failed
-          toast({
-            title: "Registration successful",
-            description: "Your account has been created, but we couldn't log you in automatically. Please try logging in.",
-          });
-          navigate('/login');
-        }
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created. You can now log in.",
+        });
+        navigate('/login');
       }
       
       return { error: null, data };
@@ -268,10 +215,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out
   const signOut = async () => {
-    authService.logout();
+    await authService.logout();
     setUser(null);
     setIsAdmin(false);
-    setIsTeacher(false); // Reset teacher status
+    setIsTeacher(false);
     navigate('/login');
     toast({
       title: "Logged out",
@@ -283,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     isAdmin,
-    isTeacher, // Include teacher status in context value
+    isTeacher,
     signIn,
     signUp,
     signOut,

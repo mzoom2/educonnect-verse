@@ -7,38 +7,16 @@ const ProfileSetupAlert = () => {
   return (
     <Alert variant="destructive" className="my-4">
       <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Profile Setup Required</AlertTitle>
+      <AlertTitle>Database Setup Information</AlertTitle>
       <AlertDescription>
-        <p>Your account has been created but profile setup is incomplete. This is likely because the database hasn't been fully configured.</p>
-        <p className="mt-2 font-semibold">For administrators:</p>
-        <p className="text-sm mt-1">
-          Please create the following table in Supabase:
-        </p>
-        <pre className="text-xs bg-black/10 p-2 mt-1 rounded overflow-auto">
-{`CREATE TABLE public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  username TEXT UNIQUE,
-  email TEXT UNIQUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- Set up Row Level Security
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- Create policies
-CREATE POLICY "Public profiles are viewable by everyone."
-  ON public.profiles FOR SELECT
-  USING (true);
-  
-CREATE POLICY "Users can insert their own profile."
-  ON public.profiles FOR INSERT
-  WITH CHECK (auth.uid() = id);
-  
-CREATE POLICY "Users can update their own profile."
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id);`}
-        </pre>
+        <p>The application is now using Supabase for the database and authentication.</p>
+        <p className="mt-2">Tables created in Supabase:</p>
+        <ul className="list-disc pl-5 mt-1 space-y-1">
+          <li><strong>courses</strong> - Stores all course information</li>
+          <li><strong>course_resources</strong> - Stores resources associated with courses</li>
+          <li><strong>profiles</strong> - Stores user profile information</li>
+        </ul>
+        <p className="mt-2">A storage bucket named "course-content" has also been created for file uploads.</p>
       </AlertDescription>
     </Alert>
   );

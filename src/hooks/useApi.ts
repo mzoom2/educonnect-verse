@@ -1,8 +1,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import api from '@/services/api';
 import { useNavigate } from 'react-router-dom';
+import { courseService, authService } from '@/services/supabaseService';
+import { supabase } from '@/integrations/supabase/client';
 
 type ApiRequestState<T> = {
   data: T | null;
@@ -10,15 +11,12 @@ type ApiRequestState<T> = {
   error: string | null;
 };
 
-type ApiMethod = 'get' | 'post' | 'put' | 'delete';
-
 // Check if backend is available
 export const checkBackendHealth = async (): Promise<boolean> => {
   try {
-    console.log('Checking backend health...');
-    await api.get('/health-check', { timeout: 5000 });
-    console.log('Backend health check passed');
-    return true;
+    // For Supabase, we can check if we can connect by making a simple query
+    const { error } = await supabase.from('courses').select('id').limit(1);
+    return !error;
   } catch (error) {
     console.error('Backend health check failed:', error);
     return false;
@@ -26,7 +24,7 @@ export const checkBackendHealth = async (): Promise<boolean> => {
 };
 
 // Generic hook for API calls
-export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown, immediate = true, showErrorToast = true) {
+export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete' = 'get', body?: unknown, immediate = true, showErrorToast = true) {
   const [state, setState] = useState<ApiRequestState<T>>({
     data: null,
     isLoading: immediate,
@@ -42,46 +40,89 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
       // First check if backend is available
       const isBackendHealthy = await checkBackendHealth();
       if (!isBackendHealthy) {
-        throw new Error('Backend server is not available. Please check if the server is running.');
+        throw new Error('Backend server is not available. Please check your connection to Supabase.');
       }
       
       const requestBody = newBody || body;
-      let response;
+      let result;
       
       console.log(`Making ${method.toUpperCase()} request to ${url}`, requestBody);
       
-      switch (method) {
-        case 'get':
-          response = await api.get<T>(url);
-          break;
-        case 'post':
-          response = await api.post<T>(url, requestBody);
-          break;
-        case 'put':
-          response = await api.put<T>(url, requestBody);
-          break;
-        case 'delete':
-          response = await api.delete<T>(url);
-          break;
-        default:
-          throw new Error(`Unsupported API method: ${method}`);
+      // Parse URL to determine what service method to call
+      const urlParts = url.split('/');
+      let response;
+      
+      // Handle auth endpoints
+      if (urlParts[1] === 'auth') {
+        if (url === '/auth/current-user') {
+          response = await authService.getCurrentUser();
+        } else if (url === '/auth/verify-token') {
+          response = await authService.verifyToken();
+        } else if (url.includes('/auth/users') && url.includes('metadata') && method === 'put') {
+          const userId = urlParts[3];
+          response = await authService.updateUserMetadata(userId, requestBody);
+        } else if (url.includes('/auth/users') && url.includes('apply-teacher') && method === 'post') {
+          const userId = urlParts[3];
+          response = await authService.applyAsTeacher(userId, requestBody);
+        }
+      }
+      // Handle courses endpoints
+      else if (urlParts[1] === 'courses') {
+        if (method === 'get') {
+          if (urlParts.length === 2) {
+            response = await courseService.getAllCourses();
+          } else if (urlParts[2] === 'search') {
+            const query = new URLSearchParams(url.split('?')[1]).get('q') || '';
+            response = await courseService.searchCourses(query);
+          } else if (urlParts[2] === 'category') {
+            response = await courseService.getCoursesByCategory(urlParts[3]);
+          } else {
+            response = await courseService.getCourseById(urlParts[2]);
+          }
+        }
+      }
+      // Handle admin endpoints
+      else if (urlParts[1] === 'admin') {
+        if (urlParts[2] === 'courses') {
+          if (method === 'post') {
+            response = await courseService.createCourse(requestBody);
+          } else if (method === 'put' && urlParts.length > 3) {
+            response = await courseService.updateCourse(urlParts[3], requestBody);
+          } else if (method === 'delete' && urlParts.length > 3) {
+            response = await courseService.deleteCourse(urlParts[3]);
+          }
+        }
+      }
+      // Handle teacher endpoints
+      else if (urlParts[1] === 'teacher' && urlParts[2] === 'courses') {
+        if (method === 'get') {
+          response = await courseService.getTeacherCourses();
+        }
       }
       
-      console.log(`Response received from ${url}:`, response.data);
+      // If response is undefined, throw error
+      if (!response) {
+        throw new Error(`Endpoint not implemented: ${url}`);
+      }
+      
+      console.log(`Response received from ${url}:`, response);
+      
+      // Check for error in response
+      if (response.error) {
+        throw new Error(response.error);
+      }
       
       setState({
-        data: response.data,
+        data: response.data as T,
         isLoading: false,
         error: null,
       });
       
-      return { data: response.data, error: null };
+      return { data: response.data as T, error: null };
     } catch (error: any) {
       console.error(`Error during ${method.toUpperCase()} request to ${url}:`, error);
       
-      const errorMessage = error.response?.data?.message || 
-                           error.message || 
-                           'An error occurred';
+      const errorMessage = error.message || 'An error occurred';
       
       setState({
         data: null,
@@ -90,7 +131,7 @@ export function useApi<T>(url: string, method: ApiMethod = 'get', body?: unknown
       });
       
       // Handle authentication errors
-      if (error.response?.status === 401 || error.response?.status === 403) {
+      if (error.message?.includes('not authenticated') || error.message?.includes('JWT expired')) {
         // Redirect to login page if unauthorized
         navigate('/login');
       }

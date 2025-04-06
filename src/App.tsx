@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from "@/components/ui/toaster";
+import { initializeSupabase } from './services/setupSupabase';
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,6 +22,13 @@ import CourseOverview from "./pages/CourseOverview";
 import PrivateRoute from './components/auth/PrivateRoute';
 
 function App() {
+  // Initialize Supabase when the app loads
+  useEffect(() => {
+    initializeSupabase()
+      .then(() => console.log('Supabase initialized successfully'))
+      .catch(err => console.error('Error initializing Supabase:', err));
+  }, []);
+
   return (
     <BrowserRouter>
       <ThemeProvider defaultTheme="light">
