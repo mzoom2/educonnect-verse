@@ -26,11 +26,20 @@ const Login = () => {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        toast({
-          title: "Authentication error",
-          description: error.message,
-          variant: "destructive"
-        });
+        // Display more user-friendly message for email confirmation error
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email not confirmed",
+            description: "Please check your inbox and click the confirmation link to verify your email address.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Authentication error",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

@@ -53,7 +53,13 @@ export const authService = {
         password
       });
       
-      if (error) throw error;
+      if (error) {
+        // Handle email not confirmed error specifically
+        if (error.message.includes('Email not confirmed')) {
+          console.log('Email not confirmed. Please check your email for verification link.');
+        }
+        throw error;
+      }
       
       // Update last login if signed in successfully
       if (data.user) {
@@ -176,7 +182,7 @@ export const authService = {
       
       // Merge existing metadata with new metadata
       const mergedMetadata = {
-        ...(existingData?.metadata as any || {}),
+        ...(existingData?.metadata || {}),
         ...data.metadata
       };
       
@@ -218,7 +224,7 @@ export const authService = {
       
       // Merge with existing metadata
       const mergedMetadata = {
-        ...(existingData?.metadata as any || {}),
+        ...(existingData?.metadata as Record<string, any> || {}),
         teacherApplication
       };
       
@@ -471,16 +477,25 @@ export const courseService = {
 // Function to create a storage bucket if it doesn't exist
 export const createStorageBucket = async () => {
   try {
-    const { data, error } = await supabase.storage.createBucket('course-content', {
-      public: true,
-      fileSizeLimit: 52428800, // 50MB
-      allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
-    });
+    // Check if bucket already exists first to avoid errors
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === 'course-content');
     
-    if (error && !error.message.includes('already exists')) {
-      console.error('Error creating storage bucket:', error);
+    if (!bucketExists) {
+      console.log('Creating storage bucket: course-content');
+      const { data, error } = await supabase.storage.createBucket('course-content', {
+        public: true,
+        fileSizeLimit: 52428800, // 50MB
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
+      });
+      
+      if (error && !error.message.includes('already exists')) {
+        console.error('Error creating storage bucket:', error);
+      } else {
+        console.log('Storage bucket created successfully');
+      }
     } else {
-      console.log('Storage bucket created or already exists');
+      console.log('Storage bucket already exists');
     }
   } catch (error) {
     console.error('Error setting up storage bucket:', error);
