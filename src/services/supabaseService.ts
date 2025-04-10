@@ -448,7 +448,7 @@ export const courseService = {
   },
   
   // Upload function (placeholder - will need to be implemented with Supabase Storage)
-  uploadCourseMedia: async (file: File, courseTitle?: string, courseId?: string): Promise<string> => {
+  uploadCourseMedia: async (file: File, courseTitle?: string, courseId?: string) => {
     try {
       // Generate a unique file path
       const fileExtension = file.name.split('.').pop();
