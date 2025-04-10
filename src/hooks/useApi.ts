@@ -19,6 +19,8 @@ export const checkBackendHealth = async (): Promise<boolean> => {
       .from('courses')
       .select('id')
       .limit(1);
+    
+    console.log('Backend health check result:', error ? 'Error connecting' : 'Connected successfully');
     return !error;
   } catch (error) {
     console.error('Backend health check failed:', error);
@@ -47,7 +49,6 @@ export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete'
       }
       
       const requestBody = newBody || body;
-      let result;
       
       console.log(`Making ${method.toUpperCase()} request to ${url}`, requestBody);
       
@@ -73,7 +74,9 @@ export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete'
       else if (urlParts[1] === 'courses') {
         if (method === 'get') {
           if (urlParts.length === 2) {
+            console.log('Fetching all courses from Supabase...');
             response = await courseService.getAllCourses();
+            console.log('Received response from getAllCourses:', response);
           } else if (urlParts[2] === 'search') {
             const query = new URLSearchParams(url.split('?')[1]).get('q') || '';
             response = await courseService.searchCourses(query);
@@ -134,7 +137,7 @@ export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete'
       });
       
       // Handle authentication errors
-      if (error.message?.includes('not authenticated') || error.message?.includes('JWT expired')) {
+      if (errorMessage.includes('not authenticated') || errorMessage.includes('JWT expired')) {
         // Redirect to login page if unauthorized
         navigate('/login');
       }

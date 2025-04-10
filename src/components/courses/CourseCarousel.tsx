@@ -1,9 +1,11 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, AlertCircle } from 'lucide-react';
 import CourseCard from './CourseCard';
 import { Course } from '@/services/courseService';
 import { useApi } from '@/hooks/useApi';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CourseCarouselProps {
   customCourses?: Course[];
@@ -15,7 +17,7 @@ const CourseCarousel = ({ customCourses, isLoading: propIsLoading = false }: Cou
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   
-  const { data: fetchedCourses, isLoading: apiIsLoading } = useApi<Course[]>('/courses', 'get');
+  const { data: fetchedCourses, isLoading: apiIsLoading, error } = useApi<Course[]>('/courses', 'get');
   const courses = customCourses || fetchedCourses || [];
   const isLoading = propIsLoading || apiIsLoading;
   
@@ -43,6 +45,14 @@ const CourseCarousel = ({ customCourses, isLoading: propIsLoading = false }: Cou
     };
   }, []);
   
+  // Effect to re-check scroll buttons when courses load
+  useEffect(() => {
+    if (!isLoading && courses.length > 0) {
+      // Small delay to allow for render
+      setTimeout(updateScrollButtons, 100);
+    }
+  }, [isLoading, courses.length]);
+  
   const scroll = (direction: 'left' | 'right') => {
     if (!carouselRef.current) return;
     
@@ -55,6 +65,15 @@ const CourseCarousel = ({ customCourses, isLoading: propIsLoading = false }: Cou
       carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  // Log data for debugging purposes
+  console.log("CourseCarousel data:", { 
+    fetchedCourses, 
+    customCourses, 
+    coursesLength: courses.length, 
+    isLoading, 
+    error 
+  });
 
   return (
     <section id="courses" className="section-padding bg-gradient-to-b from-background to-secondary/10">
@@ -97,12 +116,20 @@ const CourseCarousel = ({ customCourses, isLoading: propIsLoading = false }: Cou
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div key={i} className="space-y-3">
-                <div className="aspect-video w-full bg-muted rounded-md"></div>
-                <div className="h-4 w-3/4 bg-muted rounded"></div>
-                <div className="h-3 w-1/2 bg-muted rounded"></div>
+                <Skeleton className="aspect-video w-full rounded-md" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
               </div>
             ))}
           </div>
+        ) : error ? (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error Loading Courses</AlertTitle>
+            <AlertDescription>
+              {error}. Please try refreshing the page.
+            </AlertDescription>
+          </Alert>
         ) : courses.length > 0 ? (
           <div 
             className="overflow-x-auto scrollbar-hide pb-8 -mx-4 px-4"

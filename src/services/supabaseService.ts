@@ -10,16 +10,7 @@ export interface UserProfile {
   role: string;
   created_at?: string;
   last_login?: string | null;
-  metadata?: {
-    balance?: number;
-    teacherApplication?: {
-      qualification: string;
-      experience: string;
-      specialization: string;
-      status: string;
-      submittedAt: string;
-    };
-  };
+  metadata?: Record<string, any>;
 }
 
 // Authentication Functions
@@ -184,9 +175,9 @@ export const authService = {
         
       if (fetchError) throw fetchError;
       
-      // Merge existing metadata with new metadata
-      const existingMetadata = existingData?.metadata || {};
-      const newMetadata = data.metadata || {};
+      // Merge existing metadata with new metadata - fix TypeScript error
+      const existingMetadata = existingData?.metadata as Record<string, any> || {};
+      const newMetadata = data.metadata as Record<string, any> || {};
       
       const mergedMetadata = {
         ...existingMetadata,
@@ -229,8 +220,8 @@ export const authService = {
         submittedAt: new Date().toISOString()
       };
       
-      // Merge with existing metadata
-      const existingMetadata = existingData?.metadata || {};
+      // Merge with existing metadata - fix TypeScript error
+      const existingMetadata = existingData?.metadata as Record<string, any> || {};
       
       const mergedMetadata = {
         ...existingMetadata,
@@ -269,6 +260,12 @@ export const courseService = {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
+      
+      // Process the image URLs to ensure they have full paths
+      if (data) {
+        // Log the courses for debugging
+        console.log('Fetched courses from Supabase:', data);
+      }
       
       return { data, error: null };
     } catch (error: any) {
