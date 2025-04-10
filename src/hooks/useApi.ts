@@ -54,7 +54,7 @@ export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete'
       
       // Parse URL to determine what service method to call
       const urlParts = url.split('/');
-      let response;
+      let response: { data: any; error: string | null } | undefined;
       
       // Handle auth endpoints
       if (urlParts[1] === 'auth') {
@@ -116,6 +116,17 @@ export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete'
       // Check for error in response
       if (response.error) {
         throw new Error(response.error);
+      }
+      
+      // Handle empty data for courses
+      if (url === '/courses' && (!response.data || response.data.length === 0)) {
+        console.log('No courses found, returning empty array instead of null');
+        setState({
+          data: ([] as unknown) as T,
+          isLoading: false,
+          error: null,
+        });
+        return { data: ([] as unknown) as T, error: null };
       }
       
       setState({

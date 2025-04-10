@@ -34,15 +34,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Function to refresh user data from the backend
   const refreshUserData = async () => {
-    if (!(await authService.isAuthenticated())) {
-      setUser(null);
-      setIsAdmin(false);
-      setIsTeacher(false);
-      setLoading(false);
-      return;
-    }
-
     try {
+      if (!(await authService.isAuthenticated())) {
+        setUser(null);
+        setIsAdmin(false);
+        setIsTeacher(false);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const { data, error } = await authService.getCurrentUser();
       
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to fetch user data:", error);
         toast({
           title: "Error",
-          description: "Failed to load user data",
+          description: "Failed to load user data. Please try again.",
           variant: "destructive"
         });
         setUser(null);
@@ -106,19 +106,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         console.log("Auth state change detected:", _event, session ? "Session exists" : "No session");
+        
         // Only synchronous state updates here
-        if (session) {
-          // We have a session, but defer the user profile fetch
-          setTimeout(() => {
-            refreshUserData();
-          }, 0);
-        } else {
+        if (!session) {
           // No session, clear user data
           setUser(null);
           setIsAdmin(false);
           setIsTeacher(false);
           setLoading(false);
+          return;
         }
+        
+        // We have a session, defer the user profile fetch
+        setTimeout(() => {
+          refreshUserData();
+        }, 0);
       }
     );
     
