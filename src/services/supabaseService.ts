@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Course, CourseResource } from '@/services/courseService';
 
@@ -136,7 +135,7 @@ export const authService = {
       const { data } = await supabase.auth.getSession();
       
       if (!data.session) {
-        return { valid: false };
+        return { data: null, error: "Not authenticated" };
       }
       
       // Get user profile data to include in response
@@ -156,10 +155,10 @@ export const authService = {
         metadata: profileData?.metadata
       };
       
-      return { valid: true, data: { user: userData } };
+      return { data: { user: userData }, error: null };
     } catch (error) {
       console.error('Token verification error:', error);
-      return { valid: false };
+      return { data: null, error: "Authentication failed" };
     }
   },
   

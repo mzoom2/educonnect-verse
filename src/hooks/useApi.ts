@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -61,7 +60,12 @@ export function useApi<T>(url: string, method: 'get' | 'post' | 'put' | 'delete'
         if (url === '/auth/current-user') {
           response = await authService.getCurrentUser();
         } else if (url === '/auth/verify-token') {
-          response = await authService.verifyToken();
+          const verifyResult = await authService.verifyToken();
+          // Transform the result to match expected format
+          response = {
+            data: verifyResult.data,
+            error: verifyResult.error
+          };
         } else if (url.includes('/auth/users') && url.includes('metadata') && method === 'put') {
           const userId = urlParts[3];
           response = await authService.updateUserMetadata(userId, requestBody);

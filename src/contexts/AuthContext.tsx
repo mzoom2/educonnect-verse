@@ -59,9 +59,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      setUser(data.user);
-      setIsAdmin(data.user.role === 'admin');
-      setIsTeacher(data.user.role === 'teacher');
+      // Make sure user data exists before trying to use it
+      if (data.user) {
+        setUser(data.user);
+        setIsAdmin(data.user.role === 'admin');
+        setIsTeacher(data.user.role === 'teacher');
+      } else {
+        console.error("No user data returned from getCurrentUser");
+        setUser(null);
+        setIsAdmin(false);
+        setIsTeacher(false);
+      }
     } catch (err) {
       console.error("Error refreshing user data:", err);
       setUser(null);

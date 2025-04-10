@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen, AlertCircle } from 'lucide-react';
 import CourseCard from './CourseCard';
@@ -22,6 +21,17 @@ const CourseCarousel = ({ customCourses, isLoading: propIsLoading = false }: Cou
   const courses = customCourses || fetchedCourses || [];
   const isLoading = propIsLoading || apiIsLoading;
   
+  // Add a console log to debug courses data
+  useEffect(() => {
+    console.log("CourseCarousel data:", { 
+      fetchedCourses, 
+      customCourses, 
+      coursesLength: courses.length, 
+      isLoading, 
+      error 
+    });
+  }, [fetchedCourses, customCourses, courses.length, isLoading, error]);
+
   const updateScrollButtons = () => {
     if (!carouselRef.current) return;
     
